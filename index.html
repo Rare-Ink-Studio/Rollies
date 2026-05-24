@@ -1,0 +1,2518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+  />
+  <title>Rollies</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #12071f;
+      font-family: Arial, Helvetica, sans-serif;
+      touch-action: none;
+      overscroll-behavior: none;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    canvas {
+      display: block;
+      width: 100vw;
+      height: 100dvh;
+      background: #12071f;
+      touch-action: none;
+    }
+
+    .overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      padding-left: max(18px, env(safe-area-inset-left));
+      padding-right: max(18px, env(safe-area-inset-right));
+      padding-top: max(18px, env(safe-area-inset-top));
+      padding-bottom: max(18px, env(safe-area-inset-bottom));
+      color: white;
+      text-align: center;
+      background:
+        radial-gradient(circle at 50% 18%, rgba(255, 224, 102, 0.28), transparent 34%),
+        radial-gradient(circle at 18% 78%, rgba(0, 225, 255, 0.16), transparent 36%),
+        linear-gradient(180deg, #26104c 0%, #39115d 42%, #12071f 100%);
+    }
+
+    .card {
+      width: min(650px, 94vw);
+      padding: clamp(18px, 4vw, 34px);
+      border-radius: 30px;
+      background: rgba(255, 255, 255, 0.12);
+      border: 2px solid rgba(255, 255, 255, 0.22);
+      box-shadow: 0 24px 70px rgba(0, 0, 0, 0.45);
+      backdrop-filter: blur(14px);
+    }
+
+    .logo {
+      font-size: clamp(54px, 14vw, 98px);
+      line-height: 0.88;
+      font-weight: 1000;
+      letter-spacing: -4px;
+      margin: 0;
+      text-shadow:
+        0 5px 0 #f28c28,
+        0 10px 0 #d8447c,
+        0 20px 32px rgba(0,0,0,0.45);
+    }
+
+    .bigTitle {
+      font-size: clamp(34px, 9vw, 74px);
+      line-height: 0.95;
+      font-weight: 1000;
+      margin: 0;
+      text-shadow:
+        0 4px 0 #f28c28,
+        0 9px 0 #d8447c,
+        0 18px 28px rgba(0,0,0,0.45);
+    }
+
+    .casinoTitle {
+      color: #fff06a;
+      text-shadow:
+        0 0 14px rgba(255,240,106,0.9),
+        0 4px 0 #7a1a39,
+        0 9px 0 #24061f,
+        0 18px 34px rgba(0,0,0,0.65);
+    }
+
+    .tagline {
+      margin: 14px 0 8px;
+      font-size: clamp(17px, 4vw, 24px);
+      font-weight: 900;
+      color: #ffe66d;
+    }
+
+    .small {
+      font-size: clamp(14px, 3.4vw, 17px);
+      line-height: 1.45;
+      opacity: 0.94;
+      margin: 12px auto 20px;
+      max-width: 500px;
+    }
+
+    .btn {
+      appearance: none;
+      border: 0;
+      border-radius: 999px;
+      padding: 14px 24px;
+      font-size: clamp(16px, 4vw, 22px);
+      font-weight: 1000;
+      color: #2b0f33;
+      background: linear-gradient(180deg, #fff27a, #ff9f1c);
+      box-shadow: 0 8px 0 #b85b00, 0 18px 28px rgba(0,0,0,0.35);
+      cursor: pointer;
+      touch-action: manipulation;
+      margin: 8px;
+    }
+
+    .btn.blue {
+      background: linear-gradient(180deg, #bff8ff, #37e6ff);
+      box-shadow: 0 8px 0 #007f9c, 0 18px 28px rgba(0,0,0,0.35);
+    }
+
+    .btn.pink {
+      background: linear-gradient(180deg, #ffb6da, #ff4fa3);
+      box-shadow: 0 8px 0 #9b1558, 0 18px 28px rgba(0,0,0,0.35);
+    }
+
+    .btn.green {
+      background: linear-gradient(180deg, #d9ff9a, #70e044);
+      box-shadow: 0 8px 0 #2b8d13, 0 18px 28px rgba(0,0,0,0.35);
+    }
+
+    .btn:active {
+      transform: translateY(4px);
+      box-shadow: 0 4px 0 rgba(0,0,0,0.35), 0 10px 20px rgba(0,0,0,0.3);
+    }
+
+    .hud {
+      position: fixed;
+      left: env(safe-area-inset-left);
+      right: env(safe-area-inset-right);
+      top: env(safe-area-inset-top);
+      z-index: 8;
+      padding: 10px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+      gap: 8px;
+      pointer-events: none;
+      color: white;
+      text-shadow: 0 3px 8px rgba(0,0,0,0.75);
+      font-weight: 900;
+    }
+
+    .hudBox {
+      background: rgba(20, 8, 34, 0.64);
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 18px;
+      padding: 8px 10px;
+      backdrop-filter: blur(8px);
+      min-width: 76px;
+    }
+
+    .hudTitle {
+      font-size: 10px;
+      letter-spacing: 1px;
+      opacity: 0.78;
+      text-transform: uppercase;
+    }
+
+    .hudValue {
+      font-size: clamp(17px, 4.8vw, 26px);
+      line-height: 1.05;
+    }
+
+    .muteBtn, .backBtn {
+      position: fixed;
+      z-index: 14;
+      border: 1px solid rgba(255,255,255,0.25);
+      border-radius: 999px;
+      background: rgba(20, 8, 34, 0.64);
+      color: white;
+      font-weight: 900;
+      padding: 10px 14px;
+      font-size: 14px;
+      backdrop-filter: blur(8px);
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+
+    .muteBtn {
+      right: calc(12px + env(safe-area-inset-right));
+      bottom: calc(58px + env(safe-area-inset-bottom));
+    }
+
+    .backBtn {
+      left: calc(12px + env(safe-area-inset-left));
+      bottom: calc(58px + env(safe-area-inset-bottom));
+    }
+
+    .hint {
+      position: fixed;
+      left: 50%;
+      bottom: calc(12px + env(safe-area-inset-bottom));
+      transform: translateX(-50%);
+      width: min(660px, 92vw);
+      z-index: 9;
+      pointer-events: none;
+      color: white;
+      text-align: center;
+      font-weight: 900;
+      text-shadow: 0 3px 10px rgba(0,0,0,0.75);
+      font-size: clamp(13px, 3.5vw, 17px);
+      padding: 9px 14px;
+      border-radius: 999px;
+      background: rgba(20, 8, 34, 0.52);
+      border: 1px solid rgba(255,255,255,0.16);
+      backdrop-filter: blur(8px);
+    }
+
+    .hide {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="game"></canvas>
+
+  <div class="hud hide" id="hud">
+    <div class="hudBox">
+      <div class="hudTitle" id="hudLeftTitle">Score</div>
+      <div class="hudValue" id="hudLeftValue">0</div>
+    </div>
+    <div class="hudBox" style="text-align:center;">
+      <div class="hudTitle" id="hudMidTitle">Ball</div>
+      <div class="hudValue" id="hudMidValue">1</div>
+    </div>
+    <div class="hudBox" style="text-align:right;">
+      <div class="hudTitle" id="hudRightTitle">Frame</div>
+      <div class="hudValue" id="hudRightValue">1 / 10</div>
+    </div>
+  </div>
+
+  <button class="muteBtn hide" id="muteBtn">🔊</button>
+  <button class="backBtn hide" id="backBtn">🎳 Bowl</button>
+
+  <div class="hint hide" id="hint">Pull back, aim, release.</div>
+
+  <div class="overlay" id="startScreen">
+    <div class="card">
+      <h1 class="logo">Rollies</h1>
+      <div class="tagline">Sunday lanes. Silly pins. Big strikes.</div>
+      <div class="small">
+        Bowl a full game, unlock the Pool Room, clear the table, and find the hidden Speak Easy.
+      </div>
+      <button class="btn" id="playBtn">PLAY</button>
+    </div>
+  </div>
+
+  <div class="overlay hide" id="bowlingDoneScreen">
+    <div class="card">
+      <h2 class="bigTitle">Nice Game!</h2>
+      <div class="tagline" id="finalScoreText">Final Score: 0</div>
+      <div class="small">
+        You finished a full game of bowling. The Rollies Pool Room is now open.
+      </div>
+      <button class="btn" id="bowlAgainBtn">🎳 Keep Bowling</button>
+      <button class="btn blue" id="poolRoomBtn">🎱 Rollies Pool Room</button>
+    </div>
+  </div>
+
+  <div class="overlay hide" id="casinoUnlockScreen">
+    <div class="card">
+      <h2 class="bigTitle casinoTitle">Speak Easy Unlocked!</h2>
+      <div class="tagline">You cleared the pool table.</div>
+      <div class="small">
+        A hidden door slides open behind the lanes. Welcome to the secret side of Rollies.
+      </div>
+      <button class="btn pink" id="enterCasinoBtn">✨ Enter Speak Easy Rollie Casino</button>
+      <button class="btn" id="unlockBowlBtn">🎳 Bowl Again</button>
+    </div>
+  </div>
+
+  <div class="overlay hide" id="casinoMenuScreen">
+    <div class="card">
+      <h2 class="bigTitle casinoTitle">Speak Easy Rollie Casino</h2>
+      <div class="tagline">Arcade tokens only. No real money.</div>
+      <div class="small">
+        This is the first basic casino room for release. Bigger games come in next week’s upgrade.
+      </div>
+      <button class="btn pink" id="slotsBtn">🎰 Hit the Slots</button>
+      <button class="btn blue" id="cardsBtn">🃏 Play Cards</button>
+      <button class="btn" id="casinoBowlBtn">🎳 Back to Bowling</button>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const canvas = document.getElementById("game");
+      const ctx = canvas.getContext("2d");
+
+      const startScreen = document.getElementById("startScreen");
+      const bowlingDoneScreen = document.getElementById("bowlingDoneScreen");
+      const casinoUnlockScreen = document.getElementById("casinoUnlockScreen");
+      const casinoMenuScreen = document.getElementById("casinoMenuScreen");
+
+      const playBtn = document.getElementById("playBtn");
+      const bowlAgainBtn = document.getElementById("bowlAgainBtn");
+      const poolRoomBtn = document.getElementById("poolRoomBtn");
+      const enterCasinoBtn = document.getElementById("enterCasinoBtn");
+      const unlockBowlBtn = document.getElementById("unlockBowlBtn");
+      const slotsBtn = document.getElementById("slotsBtn");
+      const cardsBtn = document.getElementById("cardsBtn");
+      const casinoBowlBtn = document.getElementById("casinoBowlBtn");
+
+      const hud = document.getElementById("hud");
+      const hint = document.getElementById("hint");
+      const muteBtn = document.getElementById("muteBtn");
+      const backBtn = document.getElementById("backBtn");
+
+      const hudLeftTitle = document.getElementById("hudLeftTitle");
+      const hudLeftValue = document.getElementById("hudLeftValue");
+      const hudMidTitle = document.getElementById("hudMidTitle");
+      const hudMidValue = document.getElementById("hudMidValue");
+      const hudRightTitle = document.getElementById("hudRightTitle");
+      const hudRightValue = document.getElementById("hudRightValue");
+      const finalScoreText = document.getElementById("finalScoreText");
+
+      const pinImage = new Image();
+      pinImage.src = "assets/bowling-pin.png";
+
+      const audio = {
+        music: new Audio("sounds/background-music.mp3"),
+        ambience: new Audio("sounds/alley-ambience.mp3"),
+        roll: new Audio("sounds/ball-roll.mp3"),
+        pinHit: new Audio("sounds/pin-hit.mp3"),
+        singlePin: new Audio("sounds/single-pin-hit.mp3"),
+        spare: new Audio("sounds/spare.mp3"),
+        strike: new Audio("sounds/strike.mp3")
+      };
+
+      audio.music.loop = true;
+      audio.ambience.loop = true;
+
+      const volumes = {
+        music: 0.24,
+        ambience: 0.08,
+        roll: 0.32,
+        pinHit: 0.16,
+        singlePin: 0.08,
+        spare: 0.46,
+        strike: 0.54
+      };
+
+      let muted = false;
+      let audioUnlocked = false;
+      let audioCtx = null;
+      let lastPinSoundTime = 0;
+      let lastBigPinSoundTime = 0;
+
+      function applyVolumes() {
+        audio.music.volume = muted ? 0 : volumes.music;
+        audio.ambience.volume = muted ? 0 : volumes.ambience;
+      }
+
+      function unlockAudio() {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === "suspended") audioCtx.resume();
+
+        if (!audioUnlocked) {
+          audioUnlocked = true;
+          Object.values(audio).forEach(a => {
+            a.preload = "auto";
+            a.muted = true;
+            a.play().then(() => {
+              a.pause();
+              a.currentTime = 0;
+              a.muted = false;
+            }).catch(() => {
+              a.muted = false;
+            });
+          });
+        }
+
+        applyVolumes();
+        if (audio.music.paused) audio.music.play().catch(() => {});
+        if (audio.ambience.paused) audio.ambience.play().catch(() => {});
+      }
+
+      function playSound(name, volumeOverride) {
+        if (muted) return;
+
+        const base = audio[name];
+        if (!base) return fallbackTone(name);
+
+        try {
+          const now = performance.now();
+
+          if (name === "singlePin") {
+            if (now - lastPinSoundTime < 85) return;
+            lastPinSoundTime = now;
+          }
+
+          if (name === "pinHit") {
+            if (now - lastBigPinSoundTime < 145) return;
+            lastBigPinSoundTime = now;
+          }
+
+          const s = base.cloneNode();
+          s.volume = volumeOverride ?? volumes[name] ?? 0.2;
+          s.play().catch(() => fallbackTone(name));
+        } catch {
+          fallbackTone(name);
+        }
+      }
+
+      function fallbackTone(name) {
+        if (!audioCtx || muted) return;
+
+        let freq = 440;
+        let duration = 0.1;
+        let type = "sine";
+        let volume = 0.02;
+
+        if (name === "roll") {
+          freq = 88;
+          duration = 0.28;
+          type = "sawtooth";
+          volume = 0.018;
+        }
+
+        if (name === "singlePin") {
+          freq = 430;
+          duration = 0.055;
+          type = "square";
+          volume = 0.018;
+        }
+
+        if (name === "pinHit") {
+          freq = 360;
+          duration = 0.075;
+          type = "square";
+          volume = 0.028;
+        }
+
+        if (name === "strike") {
+          freq = 160;
+          duration = 0.22;
+          type = "sawtooth";
+          volume = 0.05;
+        }
+
+        if (name === "spare") {
+          freq = 520;
+          duration = 0.16;
+          type = "triangle";
+          volume = 0.04;
+        }
+
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(Math.max(45, freq * 0.5), audioCtx.currentTime + duration);
+
+        gain.gain.setValueAtTime(0.0001, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(volume, audioCtx.currentTime + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration + 0.02);
+      }
+
+      muteBtn.addEventListener("click", () => {
+        muted = !muted;
+        muteBtn.textContent = muted ? "🔇" : "🔊";
+        applyVolumes();
+      });
+
+      let W = 0;
+      let H = 0;
+      let DPR = 1;
+      let mode = "menu";
+
+      let dragging = false;
+      let dragStart = { x: 0, y: 0 };
+      let dragNow = { x: 0, y: 0 };
+
+      let confetti = [];
+      let sparks = [];
+      let stars = [];
+      let screenShake = 0;
+
+      let bowlScore = 0;
+      let frame = 1;
+      let rollNumber = 1;
+      let firstRollPins = 0;
+      let strikeStreak = 0;
+      let message = "ROLLIES";
+      let subMessage = "";
+      let messageTimer = 2;
+      let laneGlow = 0;
+      let ballTouchedGutter = false;
+      let rollFinished = false;
+      let strikeAssistUsed = false;
+
+      const ball = {
+        x: 0,
+        y: 0,
+        r: 18,
+        vx: 0,
+        vy: 0,
+        spin: 0,
+        rolling: false,
+        launched: false,
+        trail: [],
+        hitX: null,
+        hitY: null,
+        maxSpeed: 0
+      };
+
+      let pins = [];
+
+      const pool = {
+        score: 0,
+        shots: 0,
+        message: "ROLLIES POOL ROOM",
+        messageTimer: 2,
+        cleared: false,
+        cue: { x: 0, y: 0, r: 14, vx: 0, vy: 0 },
+        balls: [],
+        pockets: [],
+        table: { x: 0, y: 0, w: 0, h: 0 }
+      };
+
+      const casino = {
+        tokens: 100,
+        message: "SPEAK EASY",
+        sub: "Arcade tokens only",
+        reels: ["🎳", "🎱", "⭐"],
+        cards: [],
+        mode: "menu",
+        spinTimer: 0
+      };
+
+      function hideAllScreens() {
+        startScreen.classList.add("hide");
+        bowlingDoneScreen.classList.add("hide");
+        casinoUnlockScreen.classList.add("hide");
+        casinoMenuScreen.classList.add("hide");
+      }
+
+      function showHud() {
+        hud.classList.remove("hide");
+        hint.classList.remove("hide");
+        muteBtn.classList.remove("hide");
+      }
+
+      function hideHud() {
+        hud.classList.add("hide");
+        hint.classList.add("hide");
+      }
+
+      function vibrate(pattern) {
+        try {
+          if (navigator.vibrate) navigator.vibrate(pattern);
+        } catch {}
+      }
+
+      function resize() {
+        DPR = Math.min(window.devicePixelRatio || 1, 2);
+        W = Math.floor(window.innerWidth);
+        H = Math.floor(window.innerHeight);
+        canvas.width = Math.floor(W * DPR);
+        canvas.height = Math.floor(H * DPR);
+        canvas.style.width = W + "px";
+        canvas.style.height = H + "px";
+        ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+
+        ball.r = Math.max(15, Math.min(24, W * 0.043));
+
+        if (!ball.rolling && !ball.launched) resetBowlingBall();
+        resetPins();
+
+        if (mode === "pool") setupPool(false);
+      }
+
+      window.addEventListener("resize", resize, { passive: false });
+      window.addEventListener("orientationchange", () => setTimeout(resize, 80), { passive: false });
+      document.addEventListener("gesturestart", e => e.preventDefault());
+      document.addEventListener("touchmove", e => e.preventDefault(), { passive: false });
+
+      function lane() {
+        const topY = H * 0.16;
+        const bottomY = H * 0.96;
+        const topW = W * 0.36;
+        const bottomW = Math.min(W * 0.92, 650);
+
+        return {
+          topY,
+          bottomY,
+          cx: W / 2,
+          leftTop: W / 2 - topW / 2,
+          rightTop: W / 2 + topW / 2,
+          leftBottom: W / 2 - bottomW / 2,
+          rightBottom: W / 2 + bottomW / 2,
+          topW,
+          bottomW
+        };
+      }
+
+      function laneXAt(y, side) {
+        const L = lane();
+        const t = Math.max(0, Math.min(1, (y - L.topY) / (L.bottomY - L.topY)));
+        return side === "left"
+          ? L.leftTop + (L.leftBottom - L.leftTop) * t
+          : L.rightTop + (L.rightBottom - L.rightTop) * t;
+      }
+
+      function resetBowlingBall() {
+        const L = lane();
+        ball.x = L.cx;
+        ball.y = H * 0.85;
+        ball.vx = 0;
+        ball.vy = 0;
+        ball.spin = 0;
+        ball.rolling = false;
+        ball.launched = false;
+        ball.trail = [];
+        ball.hitX = null;
+        ball.hitY = null;
+        ball.maxSpeed = 0;
+        ballTouchedGutter = false;
+        rollFinished = false;
+        strikeAssistUsed = false;
+      }
+
+      function resetPins() {
+        pins = [];
+        const pinR = Math.max(14, Math.min(20, W * 0.038));
+        const baseY = H * 0.365;
+        const gapY = Math.max(28, H * 0.055);
+        const gapX = Math.max(31, W * 0.075);
+
+        const setup = [
+          { count: 4, y: baseY - gapY * 1.5, numbers: [7, 8, 9, 10] },
+          { count: 3, y: baseY - gapY * 0.5, numbers: [4, 5, 6] },
+          { count: 2, y: baseY + gapY * 0.5, numbers: [2, 3] },
+          { count: 1, y: baseY + gapY * 1.5, numbers: [1] }
+        ];
+
+        let id = 0;
+        for (const row of setup) {
+          for (let i = 0; i < row.count; i++) {
+            const x = W / 2 + (i - (row.count - 1) / 2) * gapX;
+            pins.push({
+              id: id++,
+              number: row.numbers[i],
+              x,
+              y: row.y,
+              vx: 0,
+              vy: 0,
+              r: pinR,
+              knocked: false,
+              angle: 0,
+              spin: 0,
+              wobble: Math.random() * Math.PI * 2,
+              happy: Math.random() > 0.5
+            });
+          }
+        }
+      }
+
+      function updateBowlingHud() {
+        hudLeftTitle.textContent = "Score";
+        hudLeftValue.textContent = bowlScore;
+        hudMidTitle.textContent = "Ball";
+        hudMidValue.textContent = rollNumber;
+        hudRightTitle.textContent = "Frame";
+        hudRightValue.textContent = Math.min(frame, 10) + " / 10";
+      }
+
+      function updatePoolHud() {
+        hudLeftTitle.textContent = "Pool";
+        hudLeftValue.textContent = pool.score;
+        hudMidTitle.textContent = "Shots";
+        hudMidValue.textContent = pool.shots;
+        hudRightTitle.textContent = "Balls";
+        hudRightValue.textContent = pool.balls.filter(b => !b.sunk).length;
+      }
+
+      function updateCasinoHud() {
+        hudLeftTitle.textContent = "Tokens";
+        hudLeftValue.textContent = casino.tokens;
+        hudMidTitle.textContent = "Room";
+        hudMidValue.textContent = casino.mode === "slots" ? "Slots" : casino.mode === "cards" ? "Cards" : "Casino";
+        hudRightTitle.textContent = "Arcade";
+        hudRightValue.textContent = "Only";
+      }
+
+      function startBowling() {
+        unlockAudio();
+        hideAllScreens();
+        showHud();
+        backBtn.classList.add("hide");
+        mode = "bowling";
+        hint.textContent = "Pull back, aim, release. Hit the glowing pocket for a strike chance.";
+
+        bowlScore = 0;
+        frame = 1;
+        rollNumber = 1;
+        firstRollPins = 0;
+        strikeStreak = 0;
+
+        message = "ROLLIES";
+        subMessage = "Frame 1";
+        messageTimer = 2;
+
+        confetti = [];
+        sparks = [];
+        screenShake = 0;
+
+        resetBowlingBall();
+        resetPins();
+        updateBowlingHud();
+        playSound("singlePin", 0.08);
+      }
+
+      function showBowlingDone() {
+        mode = "postBowling";
+        hideHud();
+        backBtn.classList.add("hide");
+        finalScoreText.textContent = "Final Score: " + bowlScore;
+        bowlingDoneScreen.classList.remove("hide");
+      }
+
+      function startPoolRoom() {
+        unlockAudio();
+        hideAllScreens();
+        showHud();
+        backBtn.classList.remove("hide");
+        mode = "pool";
+        hint.textContent = "Use the stick, pull back from the cue ball, and sink every ball.";
+
+        pool.score = 0;
+        pool.shots = 0;
+        pool.message = "ROLLIES POOL ROOM";
+        pool.messageTimer = 2.2;
+        pool.cleared = false;
+
+        setupPool(true);
+        updatePoolHud();
+      }
+
+      function showCasinoUnlock() {
+        mode = "casinoUnlock";
+        hideHud();
+        backBtn.classList.add("hide");
+        casinoUnlockScreen.classList.remove("hide");
+      }
+
+      function showCasinoMenu() {
+        unlockAudio();
+        hideAllScreens();
+        showHud();
+        backBtn.classList.remove("hide");
+        mode = "casino";
+        casino.mode = "menu";
+        casino.message = "SPEAK EASY";
+        casino.sub = "Choose your table";
+        hint.textContent = "Speak Easy Rollie Casino: choose slots or cards. Arcade tokens only.";
+        updateCasinoHud();
+        casinoMenuScreen.classList.remove("hide");
+      }
+
+      function startSlots() {
+        hideAllScreens();
+        showHud();
+        backBtn.classList.remove("hide");
+        mode = "casino";
+        casino.mode = "slots";
+        casino.message = "ROLLIE SLOTS";
+        casino.sub = "Tap anywhere to spin";
+        casino.reels = ["🎳", "🎱", "⭐"];
+        casino.spinTimer = 0;
+        hint.textContent = "Slots: tap anywhere to spin. Match 2 or 3 symbols for arcade tokens.";
+        updateCasinoHud();
+      }
+
+      function startCards() {
+        hideAllScreens();
+        showHud();
+        backBtn.classList.remove("hide");
+        mode = "casino";
+        casino.mode = "cards";
+        casino.message = "ROLLIE CARD ROOM";
+        casino.sub = "Tap anywhere to deal";
+        casino.cards = [];
+        hint.textContent = "Cards: tap anywhere to deal 5 cards. Pairs and better win arcade tokens.";
+        updateCasinoHud();
+      }
+
+      playBtn.addEventListener("click", startBowling);
+      bowlAgainBtn.addEventListener("click", startBowling);
+      unlockBowlBtn.addEventListener("click", startBowling);
+      poolRoomBtn.addEventListener("click", startPoolRoom);
+      enterCasinoBtn.addEventListener("click", showCasinoMenu);
+      casinoBowlBtn.addEventListener("click", startBowling);
+      slotsBtn.addEventListener("click", startSlots);
+      cardsBtn.addEventListener("click", startCards);
+
+      backBtn.addEventListener("click", () => {
+        if (mode === "pool") {
+          startBowling();
+          return;
+        }
+
+        if (mode === "casino") {
+          showCasinoMenu();
+        }
+      });
+
+      function pointerPos(e) {
+        const p = e.touches ? e.touches[0] : e;
+        return { x: p.clientX, y: p.clientY };
+      }
+
+      function onDown(e) {
+        if (!["bowling", "pool", "casino"].includes(mode)) return;
+        e.preventDefault();
+        unlockAudio();
+
+        if (mode === "casino") {
+          if (casino.mode === "slots") spinSlots();
+          if (casino.mode === "cards") dealCards();
+          return;
+        }
+
+        if (mode === "bowling" && ball.rolling) return;
+        if (mode === "pool" && poolMoving()) return;
+
+        dragging = true;
+        dragStart = pointerPos(e);
+        dragNow = { ...dragStart };
+      }
+
+      function onMove(e) {
+        if (!dragging) return;
+        e.preventDefault();
+        dragNow = pointerPos(e);
+      }
+
+      function onUp(e) {
+        if (!dragging) return;
+        e.preventDefault();
+        dragging = false;
+
+        if (mode === "bowling") releaseBowling();
+        if (mode === "pool") releasePool();
+      }
+
+      canvas.addEventListener("mousedown", onDown);
+      canvas.addEventListener("mousemove", onMove);
+      window.addEventListener("mouseup", onUp);
+
+      canvas.addEventListener("touchstart", onDown, { passive: false });
+      canvas.addEventListener("touchmove", onMove, { passive: false });
+      window.addEventListener("touchend", onUp, { passive: false });
+      window.addEventListener("touchcancel", onUp, { passive: false });
+
+      function releaseBowling() {
+        if (ball.rolling) return;
+
+        const dx = dragStart.x - dragNow.x;
+        const dy = dragStart.y - dragNow.y;
+        const pull = Math.hypot(dx, dy);
+        if (pull < 22) return;
+
+        const maxPull = Math.min(230, Math.max(140, H * 0.23));
+        const power = Math.min(1, pull / maxPull);
+
+        ball.vx = dx * 0.044;
+        ball.vy = -Math.abs(dy * 0.064) - power * 5.8;
+
+        if (ball.vy > -7.8) ball.vy = -7.8;
+
+        ball.vx = Math.max(-9.2, Math.min(9.2, ball.vx));
+        ball.spin = Math.max(-0.09, Math.min(0.09, dx * 0.00082));
+        ball.rolling = true;
+        ball.launched = true;
+        ball.maxSpeed = Math.hypot(ball.vx, ball.vy);
+
+        laneGlow = 1;
+        message = rollNumber === 1 ? "BALL ONE" : "CLEANUP SHOT";
+        subMessage = "";
+        messageTimer = 0.9;
+
+        playSound("roll", 0.32);
+        vibrate(25);
+      }
+
+      function spawnConfetti(x, y, amount = 80) {
+        const colors = ["#fff06a", "#ff8c42", "#ff4fa3", "#37e6ff", "#9cff57", "#ffffff"];
+
+        for (let i = 0; i < amount; i++) {
+          confetti.push({
+            x,
+            y,
+            vx: (Math.random() - 0.5) * 8,
+            vy: -Math.random() * 7 - 1,
+            g: 0.14 + Math.random() * 0.08,
+            life: 1.4 + Math.random() * 0.8,
+            size: 3 + Math.random() * 6,
+            color: colors[Math.floor(Math.random() * colors.length)],
+            rot: Math.random() * Math.PI,
+            vr: (Math.random() - 0.5) * 0.25
+          });
+        }
+      }
+
+      function spawnSparks(x, y, amount = 12) {
+        for (let i = 0; i < amount; i++) {
+          sparks.push({
+            x,
+            y,
+            vx: (Math.random() - 0.5) * 4,
+            vy: -Math.random() * 3,
+            life: 0.35 + Math.random() * 0.35,
+            r: 1.5 + Math.random() * 3
+          });
+        }
+      }
+
+      function countStanding() {
+        return pins.filter(p => !p.knocked).length;
+      }
+
+      function knockedCount() {
+        return 10 - countStanding();
+      }
+
+      function standingNumbers() {
+        return pins.filter(p => !p.knocked).map(p => p.number).sort((a, b) => a - b);
+      }
+
+      function pocketTarget() {
+        const head = pins.find(p => p.number === 1);
+        if (!head) return { x: W / 2 + W * 0.045, y: H * 0.44 };
+        return { x: head.x + W * 0.043, y: head.y - H * 0.012 };
+      }
+
+      function shotQuality() {
+        const target = pocketTarget();
+        const hitX = ball.hitX ?? ball.x;
+        const hitY = ball.hitY ?? target.y;
+        const dist = Math.hypot(hitX - target.x, hitY - target.y);
+
+        const perfectPocket = dist < W * 0.055 && ball.maxSpeed > 9.6 && !ballTouchedGutter;
+        const goodPocket = dist < W * 0.09 && ball.maxSpeed > 8.5 && !ballTouchedGutter;
+        const brooklyn = hitX < W / 2 - W * 0.07 && ball.maxSpeed > 8.2 && !ballTouchedGutter;
+        const heavy = Math.abs(hitX - W / 2) < W * 0.035 && ball.maxSpeed > 8.2;
+
+        return { perfectPocket, goodPocket, brooklyn, heavy };
+      }
+
+      function isSplit() {
+        const left = pins.some(p => !p.knocked && [7, 4, 2].includes(p.number));
+        const right = pins.some(p => !p.knocked && [10, 6, 3].includes(p.number));
+        const headGone = pins.some(p => p.number === 1 && p.knocked);
+        const centerGone = pins.some(p => [1, 5].includes(p.number) && p.knocked);
+
+        return rollNumber === 1 && headGone && centerGone && left && right && countStanding() >= 2;
+      }
+
+      function shotTerm(knockedThisRoll) {
+        if (ballTouchedGutter && knockedThisRoll === 0) return "GUTTER BALL!";
+        if (knockedThisRoll === 0) return "GUTTER BALL!";
+
+        const q = shotQuality();
+
+        if (q.perfectPocket || q.goodPocket) return "POCKET HIT!";
+        if (q.brooklyn) return "BROOKLYN HIT!";
+        if (q.heavy && knockedThisRoll >= 5) return "HEAVY HIT!";
+        if (knockedThisRoll <= 3) return "LIGHT HIT!";
+
+        return "POCKET HIT!";
+      }
+
+      function assistStrikeChance() {
+        if (rollNumber !== 1 || ballTouchedGutter) return 0;
+
+        const q = shotQuality();
+        const total = knockedCount();
+
+        if (total >= 10) return 0;
+        if (q.perfectPocket && total >= 7) return 0.62;
+        if (q.goodPocket && total >= 8) return 0.42;
+        if (q.goodPocket && total >= 6) return 0.27;
+        if (q.brooklyn && total >= 7) return 0.16;
+        if (total >= 9 && ball.maxSpeed > 8.5) return 0.22;
+
+        return 0;
+      }
+
+      function maybeStrikeAssist() {
+        if (strikeAssistUsed || rollNumber !== 1) return;
+
+        const chance = assistStrikeChance();
+        if (chance <= 0) return;
+
+        strikeAssistUsed = true;
+
+        if (Math.random() < chance) {
+          const standing = pins.filter(p => !p.knocked);
+
+          standing.forEach((p, index) => {
+            setTimeout(() => {
+              const dir = p.x < W / 2 ? -1 : 1;
+              hitPin(p, dir * (2.8 + Math.random() * 2.2), -2.8 - Math.random() * 2.5, 0.95);
+              screenShake = Math.max(screenShake, 3);
+            }, index * 55);
+          });
+        }
+      }
+
+      function finishRoll() {
+        if (rollFinished) return;
+        rollFinished = true;
+        maybeStrikeAssist();
+
+        setTimeout(() => {
+          const totalKnocked = knockedCount();
+          let knockedThisRoll = totalKnocked;
+
+          if (rollNumber === 2) knockedThisRoll = totalKnocked - firstRollPins;
+          knockedThisRoll = Math.max(0, knockedThisRoll);
+          bowlScore += knockedThisRoll;
+
+          const strike = rollNumber === 1 && totalKnocked === 10;
+          const spare = rollNumber === 2 && totalKnocked === 10;
+
+          if (strike) {
+            strikeStreak++;
+            bowlScore += 10;
+
+            if (strikeStreak >= 3) {
+              message = "TURKEY!";
+              subMessage = "3 strikes in a row";
+            } else if (strikeStreak === 2) {
+              message = "DOUBLE!";
+              subMessage = "2 strikes in a row";
+            } else {
+              message = "STRIKE!";
+              subMessage = "All 10 on the first ball";
+            }
+
+            messageTimer = 2.4;
+            playSound("strike", 0.54);
+            vibrate([45, 35, 90]);
+            spawnConfetti(W / 2, H * 0.26, 120);
+            screenShake = 10;
+            updateBowlingHud();
+            nextFrameSoon();
+            return;
+          }
+
+          if (spare) {
+            strikeStreak = 0;
+            bowlScore += 5;
+            message = "SPARE!";
+            subMessage = "All remaining pins cleaned up";
+            messageTimer = 2.1;
+            playSound("spare", 0.46);
+            vibrate([35, 30, 60]);
+            spawnConfetti(W / 2, H * 0.3, 80);
+            screenShake = 5;
+            updateBowlingHud();
+            nextFrameSoon();
+            return;
+          }
+
+          strikeStreak = 0;
+
+          if (rollNumber === 1) {
+            firstRollPins = totalKnocked;
+
+            if (isSplit()) {
+              message = "SPLIT!";
+              subMessage = "Pins left: " + standingNumbers().join(", ");
+            } else {
+              message = shotTerm(knockedThisRoll);
+              subMessage = knockedThisRoll + " pin" + (knockedThisRoll === 1 ? "" : "s") + " down";
+            }
+
+            messageTimer = 1.7;
+            rollNumber = 2;
+            updateBowlingHud();
+
+            setTimeout(() => {
+              resetBowlingBall();
+              message = "CLEANUP SHOT";
+              subMessage = "Ball two";
+              messageTimer = 1.25;
+              updateBowlingHud();
+            }, 1050);
+          } else {
+            message = "OPEN FRAME";
+            subMessage = knockedThisRoll === 0 ? "No spare this frame" : knockedThisRoll + " more down";
+            messageTimer = 1.7;
+            updateBowlingHud();
+            nextFrameSoon();
+          }
+        }, 430);
+      }
+
+      function nextFrameSoon() {
+        setTimeout(() => {
+          frame++;
+
+          if (frame > 10) {
+            message = "FINAL SCORE";
+            subMessage = "Score: " + bowlScore;
+            messageTimer = 999;
+            spawnConfetti(W / 2, H * 0.36, 150);
+            setTimeout(showBowlingDone, 1700);
+          } else {
+            rollNumber = 1;
+            firstRollPins = 0;
+            resetBowlingBall();
+            resetPins();
+            message = "FRAME " + frame;
+            subMessage = "Ball one";
+            messageTimer = 1.45;
+            updateBowlingHud();
+          }
+        }, 1200);
+      }
+
+      function hitPin(p, forceX, forceY, power = 1) {
+        const wasStanding = !p.knocked;
+
+        p.knocked = true;
+        p.vx += forceX;
+        p.vy += forceY;
+        p.spin += (Math.random() - 0.5) * 0.45 * power;
+        spawnSparks(p.x, p.y, Math.floor(5 + power * 8));
+
+        if (wasStanding) {
+          if (power > 0.85) playSound("pinHit", 0.14);
+          else playSound("singlePin", 0.07);
+          if (power > 0.85) vibrate(14);
+        }
+      }
+
+      function setupPool(fullReset) {
+        const marginX = Math.max(16, W * 0.045);
+        const tableW = Math.min(W - marginX * 2, 820);
+        const tableH = Math.min(H * 0.7, tableW * 0.56);
+
+        pool.table.w = tableW;
+        pool.table.h = tableH;
+        pool.table.x = W / 2 - tableW / 2;
+        pool.table.y = H / 2 - tableH / 2 + H * 0.04;
+
+        const t = pool.table;
+        const pr = Math.max(26, Math.min(38, W * 0.065));
+
+        pool.pockets = [
+          { x: t.x + 16, y: t.y + 16, r: pr },
+          { x: t.x + t.w / 2, y: t.y + 12, r: pr },
+          { x: t.x + t.w - 16, y: t.y + 16, r: pr },
+          { x: t.x + 16, y: t.y + t.h - 16, r: pr },
+          { x: t.x + t.w / 2, y: t.y + t.h - 12, r: pr },
+          { x: t.x + t.w - 16, y: t.y + t.h - 16, r: pr }
+        ];
+
+        pool.cue.r = Math.max(12, Math.min(17, W * 0.032));
+        pool.cue.x = t.x + t.w * 0.25;
+        pool.cue.y = t.y + t.h * 0.5;
+        pool.cue.vx = 0;
+        pool.cue.vy = 0;
+
+        if (fullReset) {
+          pool.balls = [];
+          const r = pool.cue.r;
+          const startX = t.x + t.w * 0.66;
+          const startY = t.y + t.h * 0.5;
+          const colors = ["#ff4fa3", "#fff06a", "#37e6ff", "#9cff57", "#ff8c42", "#ffffff"];
+          const positions = [[0,0], [1,-1], [1,1], [2,-2], [2,0], [2,2]];
+
+          positions.forEach((pos, i) => {
+            pool.balls.push({
+              x: startX + pos[0] * r * 2.08,
+              y: startY + pos[1] * r * 1.12,
+              vx: 0,
+              vy: 0,
+              r,
+              color: colors[i],
+              sunk: false,
+              n: i + 1
+            });
+          });
+        }
+      }
+
+      function poolMoving() {
+        const cueMove = Math.hypot(pool.cue.vx, pool.cue.vy) > 0.08;
+        const ballsMove = pool.balls.some(b => !b.sunk && Math.hypot(b.vx, b.vy) > 0.08);
+        return cueMove || ballsMove;
+      }
+
+      function releasePool() {
+        if (poolMoving()) return;
+
+        const dx = dragStart.x - dragNow.x;
+        const dy = dragStart.y - dragNow.y;
+        const pull = Math.hypot(dx, dy);
+        const dCue = Math.hypot(dragStart.x - pool.cue.x, dragStart.y - pool.cue.y);
+
+        if (pull < 14 || dCue > pool.cue.r * 5.8) return;
+
+        const power = Math.min(1, pull / 170);
+
+        pool.cue.vx = dx * 0.086 * power;
+        pool.cue.vy = dy * 0.086 * power;
+        pool.shots++;
+        pool.message = "SHOT!";
+        pool.messageTimer = 0.8;
+
+        playSound("roll", 0.24);
+        vibrate(18);
+        updatePoolHud();
+      }
+
+      function spinSlots() {
+        if (casino.spinTimer > 0) return;
+        if (casino.tokens < 5) {
+          casino.message = "OUT OF TOKENS";
+          casino.sub = "Bowl again to reset later";
+          return;
+        }
+
+        casino.tokens -= 5;
+        casino.spinTimer = 0.65;
+        casino.message = "SPINNING!";
+        casino.sub = "-5 tokens";
+
+        const symbols = ["🎳", "🎱", "⭐", "🍒", "💎", "🔑"];
+        let ticks = 0;
+
+        const spin = setInterval(() => {
+          casino.reels = [
+            symbols[Math.floor(Math.random() * symbols.length)],
+            symbols[Math.floor(Math.random() * symbols.length)],
+            symbols[Math.floor(Math.random() * symbols.length)]
+          ];
+          ticks++;
+
+          if (ticks > 10) {
+            clearInterval(spin);
+            casino.spinTimer = 0;
+
+            const [a,b,c] = casino.reels;
+            if (a === b && b === c) {
+              const win = a === "🔑" ? 150 : 75;
+              casino.tokens += win;
+              casino.message = "JACKPOT!";
+              casino.sub = "+" + win + " tokens";
+              spawnConfetti(W / 2, H * 0.45, 120);
+              playSound("strike", 0.42);
+            } else if (a === b || b === c || a === c) {
+              casino.tokens += 15;
+              casino.message = "MATCH TWO!";
+              casino.sub = "+15 tokens";
+              playSound("spare", 0.26);
+            } else {
+              casino.message = "TRY AGAIN!";
+              casino.sub = "Tap to spin";
+              playSound("singlePin", 0.08);
+            }
+
+            updateCasinoHud();
+          }
+        }, 70);
+
+        updateCasinoHud();
+      }
+
+      function dealCards() {
+        if (casino.tokens < 5) {
+          casino.message = "OUT OF TOKENS";
+          casino.sub = "Bowl again to reset later";
+          return;
+        }
+
+        casino.tokens -= 5;
+
+        const ranks = ["A", "K", "Q", "J", "10", "9", "8"];
+        const suits = ["♠", "♥", "♦", "♣"];
+        casino.cards = [];
+
+        for (let i = 0; i < 5; i++) {
+          casino.cards.push({
+            rank: ranks[Math.floor(Math.random() * ranks.length)],
+            suit: suits[Math.floor(Math.random() * suits.length)]
+          });
+        }
+
+        const counts = {};
+        casino.cards.forEach(c => counts[c.rank] = (counts[c.rank] || 0) + 1);
+        const values = Object.values(counts).sort((a,b) => b - a);
+
+        let win = 0;
+        let name = "HIGH CARD";
+
+        if (values[0] === 4) {
+          win = 100;
+          name = "FOUR OF A KIND!";
+        } else if (values[0] === 3 && values[1] === 2) {
+          win = 75;
+          name = "FULL HOUSE!";
+        } else if (values[0] === 3) {
+          win = 35;
+          name = "THREE OF A KIND!";
+        } else if (values[0] === 2 && values[1] === 2) {
+          win = 25;
+          name = "TWO PAIR!";
+        } else if (values[0] === 2) {
+          win = 10;
+          name = "PAIR!";
+        }
+
+        casino.tokens += win;
+        casino.message = name;
+        casino.sub = win ? "+" + win + " tokens" : "Tap to deal again";
+
+        if (win >= 35) {
+          spawnConfetti(W / 2, H * 0.45, 80);
+          playSound("spare", 0.3);
+        } else {
+          playSound("singlePin", 0.08);
+        }
+
+        updateCasinoHud();
+      }
+
+      function updateBowling(dt) {
+        laneGlow = Math.max(0, laneGlow - dt * 1.35);
+        screenShake = Math.max(0, screenShake - dt * 18);
+        if (messageTimer > 0) messageTimer -= dt;
+
+        if (ball.rolling) {
+          ball.trail.push({ x: ball.x, y: ball.y, life: 0.36 });
+          if (ball.trail.length > 28) ball.trail.shift();
+
+          ball.x += ball.vx;
+          ball.y += ball.vy;
+          ball.vx += ball.spin;
+          ball.vx *= 0.992;
+          ball.vy *= 0.994;
+          ball.maxSpeed = Math.max(ball.maxSpeed, Math.hypot(ball.vx, ball.vy));
+
+          const left = laneXAt(ball.y, "left") + ball.r;
+          const right = laneXAt(ball.y, "right") - ball.r;
+
+          if (ball.x < left) {
+            ball.x = left;
+            ball.vx = Math.abs(ball.vx) * 0.58;
+            ball.spin *= -0.35;
+            ballTouchedGutter = true;
+            spawnSparks(ball.x, ball.y, 6);
+          }
+
+          if (ball.x > right) {
+            ball.x = right;
+            ball.vx = -Math.abs(ball.vx) * 0.58;
+            ball.spin *= -0.35;
+            ballTouchedGutter = true;
+            spawnSparks(ball.x, ball.y, 6);
+          }
+
+          for (const p of pins) {
+            if (p.knocked && Math.hypot(p.vx, p.vy) < 0.25) continue;
+
+            const dx = p.x - ball.x;
+            const dy = p.y - ball.y;
+            const d = Math.hypot(dx, dy);
+            const minD = ball.r + p.r * 0.95;
+
+            if (d < minD) {
+              if (ball.hitX === null) {
+                ball.hitX = ball.x;
+                ball.hitY = ball.y;
+              }
+
+              const nx = dx / (d || 1);
+              const ny = dy / (d || 1);
+              const speed = Math.hypot(ball.vx, ball.vy);
+              const q = shotQuality();
+              const pocketBoost = q.perfectPocket ? 1.45 : q.goodPocket ? 1.25 : 1;
+              const power = Math.min(1.35, Math.max(0.42, speed / 12.5)) * pocketBoost;
+
+              hitPin(
+                p,
+                nx * speed * 0.9 * pocketBoost + ball.vx * 0.42,
+                ny * speed * 0.82 * pocketBoost + ball.vy * 0.22,
+                power
+              );
+
+              ball.vx *= 0.895;
+              ball.vy *= 0.925;
+              screenShake = Math.max(screenShake, q.goodPocket ? 4.3 : 2.8);
+            }
+          }
+
+          if (ball.y < H * 0.11 || (Math.abs(ball.vy) < 0.68 && ball.y < H * 0.45)) {
+            ball.rolling = false;
+            setTimeout(finishRoll, 650);
+          }
+        }
+
+        for (const p of pins) {
+          p.wobble += dt * 5;
+
+          if (p.knocked) {
+            p.x += p.vx;
+            p.y += p.vy;
+            p.vx *= 0.962;
+            p.vy *= 0.962;
+            p.vy += 0.025;
+            p.angle += p.spin;
+            p.spin *= 0.97;
+
+            const left = laneXAt(p.y, "left") + p.r;
+            const right = laneXAt(p.y, "right") - p.r;
+
+            if (p.x < left) {
+              p.x = left;
+              p.vx = Math.abs(p.vx) * 0.48;
+            }
+
+            if (p.x > right) {
+              p.x = right;
+              p.vx = -Math.abs(p.vx) * 0.48;
+            }
+          }
+        }
+
+        for (let i = 0; i < pins.length; i++) {
+          for (let j = i + 1; j < pins.length; j++) {
+            const a = pins[i];
+            const b = pins[j];
+            const dx = b.x - a.x;
+            const dy = b.y - a.y;
+            const d = Math.hypot(dx, dy);
+            const minD = a.r + b.r;
+
+            if (d > 0 && d < minD) {
+              const nx = dx / d;
+              const ny = dy / d;
+              const overlap = minD - d;
+
+              a.x -= nx * overlap * 0.5;
+              a.y -= ny * overlap * 0.5;
+              b.x += nx * overlap * 0.5;
+              b.y += ny * overlap * 0.5;
+
+              const av = Math.hypot(a.vx, a.vy);
+              const bv = Math.hypot(b.vx, b.vy);
+              const impact = av + bv;
+
+              if (impact > 0.62) {
+                const push = Math.min(6.7, impact * 0.72);
+
+                if (a.knocked && !b.knocked) {
+                  hitPin(b, nx * push + a.vx * 0.45, ny * push + a.vy * 0.45, Math.min(1.1, impact / 7));
+                }
+
+                if (b.knocked && !a.knocked) {
+                  hitPin(a, -nx * push + b.vx * 0.45, -ny * push + b.vy * 0.45, Math.min(1.1, impact / 7));
+                }
+
+                const avx = a.vx;
+                const avy = a.vy;
+
+                a.vx = b.vx * 0.58 - nx * 0.82;
+                a.vy = b.vy * 0.58 - ny * 0.82;
+                b.vx = avx * 0.58 + nx * 0.82;
+                b.vy = avy * 0.58 + ny * 0.82;
+
+                a.spin += (Math.random() - 0.5) * 0.15;
+                b.spin += (Math.random() - 0.5) * 0.15;
+              }
+            }
+          }
+        }
+      }
+
+      function updatePool(dt) {
+        if (pool.messageTimer > 0) pool.messageTimer -= dt;
+        screenShake = Math.max(0, screenShake - dt * 18);
+
+        const t = pool.table;
+        const all = [pool.cue, ...pool.balls.filter(b => !b.sunk)];
+
+        for (const b of all) {
+          b.x += b.vx;
+          b.y += b.vy;
+          b.vx *= 0.988;
+          b.vy *= 0.988;
+
+          if (Math.hypot(b.vx, b.vy) < 0.035) {
+            b.vx = 0;
+            b.vy = 0;
+          }
+
+          if (b.x < t.x + b.r) {
+            b.x = t.x + b.r;
+            b.vx = Math.abs(b.vx) * 0.86;
+            playSound("singlePin", 0.025);
+          }
+
+          if (b.x > t.x + t.w - b.r) {
+            b.x = t.x + t.w - b.r;
+            b.vx = -Math.abs(b.vx) * 0.86;
+            playSound("singlePin", 0.025);
+          }
+
+          if (b.y < t.y + b.r) {
+            b.y = t.y + b.r;
+            b.vy = Math.abs(b.vy) * 0.86;
+            playSound("singlePin", 0.025);
+          }
+
+          if (b.y > t.y + t.h - b.r) {
+            b.y = t.y + t.h - b.r;
+            b.vy = -Math.abs(b.vy) * 0.86;
+            playSound("singlePin", 0.025);
+          }
+
+          if (b !== pool.cue) {
+            for (const p of pool.pockets) {
+              const d = Math.hypot(b.x - p.x, b.y - p.y);
+
+              if (d < p.r * 1.95) {
+                b.vx += (p.x - b.x) * 0.0028;
+                b.vy += (p.y - b.y) * 0.0028;
+              }
+            }
+          }
+        }
+
+        for (let i = 0; i < all.length; i++) {
+          for (let j = i + 1; j < all.length; j++) {
+            const a = all[i];
+            const b = all[j];
+            const dx = b.x - a.x;
+            const dy = b.y - a.y;
+            const d = Math.hypot(dx, dy);
+            const minD = a.r + b.r;
+
+            if (d > 0 && d < minD) {
+              const nx = dx / d;
+              const ny = dy / d;
+              const overlap = minD - d;
+
+              a.x -= nx * overlap * 0.5;
+              a.y -= ny * overlap * 0.5;
+              b.x += nx * overlap * 0.5;
+              b.y += ny * overlap * 0.5;
+
+              const avx = a.vx;
+              const avy = a.vy;
+
+              a.vx = b.vx * 0.98 - nx * 0.68;
+              a.vy = b.vy * 0.98 - ny * 0.68;
+              b.vx = avx * 0.98 + nx * 0.68;
+              b.vy = avy * 0.98 + ny * 0.68;
+
+              playSound("singlePin", 0.035);
+            }
+          }
+        }
+
+        for (const b of pool.balls) {
+          if (b.sunk) continue;
+
+          for (const p of pool.pockets) {
+            if (Math.hypot(b.x - p.x, b.y - p.y) < p.r * 1.18) {
+              b.sunk = true;
+              b.vx = 0;
+              b.vy = 0;
+              pool.score += 10;
+              pool.message = "+10";
+              pool.messageTimer = 1.2;
+              spawnConfetti(p.x, p.y, 35);
+              playSound("spare", 0.24);
+              vibrate(25);
+              updatePoolHud();
+            }
+          }
+        }
+
+        for (const p of pool.pockets) {
+          if (Math.hypot(pool.cue.x - p.x, pool.cue.y - p.y) < p.r * 0.95) {
+            pool.cue.x = t.x + t.w * 0.25;
+            pool.cue.y = t.y + t.h * 0.5;
+            pool.cue.vx = 0;
+            pool.cue.vy = 0;
+            pool.message = "SCRATCH!";
+            pool.messageTimer = 1.4;
+            playSound("pinHit", 0.06);
+            vibrate(20);
+          }
+        }
+
+        if (!pool.cleared && pool.balls.length && pool.balls.every(b => b.sunk)) {
+          pool.cleared = true;
+          pool.message = "SPEAK EASY UNLOCKED!";
+          pool.messageTimer = 999;
+          spawnConfetti(W / 2, H * 0.35, 180);
+          playSound("strike", 0.48);
+          vibrate([60, 40, 120]);
+
+          setTimeout(showCasinoUnlock, 1900);
+        }
+      }
+
+      function updateEffects(dt) {
+        for (const t of ball.trail) t.life -= dt;
+        ball.trail = ball.trail.filter(t => t.life > 0);
+
+        for (const c of confetti) {
+          c.x += c.vx;
+          c.y += c.vy;
+          c.vy += c.g;
+          c.rot += c.vr;
+          c.life -= dt;
+        }
+        confetti = confetti.filter(c => c.life > 0);
+
+        for (const s of sparks) {
+          s.x += s.vx;
+          s.y += s.vy;
+          s.vy += 0.08;
+          s.life -= dt;
+        }
+        sparks = sparks.filter(s => s.life > 0);
+
+        if (stars.length < 70) {
+          stars.push({
+            x: Math.random() * W,
+            y: Math.random() * H * 0.5,
+            tw: Math.random() * Math.PI * 2,
+            s: Math.random() * 1.5 + 0.4
+          });
+        }
+
+        for (const st of stars) st.tw += dt * 2;
+      }
+
+      function drawBackground(casinoGlow = false) {
+        const sky = ctx.createLinearGradient(0, 0, 0, H);
+        sky.addColorStop(0, casinoGlow ? "#160512" : "#230948");
+        sky.addColorStop(0.42, casinoGlow ? "#4b0d37" : "#5f1d63");
+        sky.addColorStop(0.68, casinoGlow ? "#9b1558" : "#e85d3f");
+        sky.addColorStop(1, "#190820");
+
+        ctx.fillStyle = sky;
+        ctx.fillRect(0, 0, W, H);
+
+        for (const st of stars) {
+          ctx.globalAlpha = 0.45 + Math.sin(st.tw) * 0.25;
+          ctx.fillStyle = "#fff8c9";
+          ctx.beginPath();
+          ctx.arc(st.x, st.y, st.s, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        ctx.globalAlpha = 1;
+
+        const sunY = H * 0.25;
+        const sunR = Math.max(58, Math.min(112, W * 0.18));
+        const sunGrad = ctx.createRadialGradient(W / 2, sunY, 10, W / 2, sunY, sunR);
+
+        sunGrad.addColorStop(0, casinoGlow ? "#fff06a" : "#fff8a8");
+        sunGrad.addColorStop(0.45, casinoGlow ? "#ff4fa3" : "#ffb347");
+        sunGrad.addColorStop(1, "rgba(255,111,97,0)");
+
+        ctx.fillStyle = sunGrad;
+        ctx.beginPath();
+        ctx.arc(W / 2, sunY, sunR, 0, Math.PI * 2);
+        ctx.fill();
+
+        const waterY = H * 0.56;
+        ctx.fillStyle = casinoGlow ? "rgba(255, 79, 163, 0.16)" : "rgba(34, 201, 232, 0.22)";
+        ctx.fillRect(0, waterY, W, H - waterY);
+
+        for (let i = 0; i < 8; i++) {
+          const y = waterY + i * 22 + Math.sin(performance.now() * 0.001 + i) * 4;
+          ctx.strokeStyle = "rgba(255,255,255,0.18)";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+
+          for (let x = -20; x <= W + 20; x += 18) {
+            const yy = y + Math.sin(x * 0.035 + performance.now() * 0.002 + i) * 4;
+            if (x === -20) ctx.moveTo(x, yy);
+            else ctx.lineTo(x, yy);
+          }
+
+          ctx.stroke();
+        }
+      }
+
+      function drawPalm(x, y, scale, flip = 1) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.scale(scale * flip, scale);
+
+        ctx.strokeStyle = "#34122c";
+        ctx.lineWidth = 8;
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        ctx.moveTo(0, 90);
+        ctx.quadraticCurveTo(18, 35, 4, 0);
+        ctx.stroke();
+
+        ctx.strokeStyle = "#21d07a";
+        ctx.lineWidth = 7;
+
+        for (let i = 0; i < 7; i++) {
+          const a = -Math.PI * 0.95 + i * 0.32;
+          ctx.beginPath();
+          ctx.moveTo(5, 2);
+          ctx.quadraticCurveTo(Math.cos(a) * 35, Math.sin(a) * 22, Math.cos(a) * 70, Math.sin(a) * 42);
+          ctx.stroke();
+        }
+
+        ctx.restore();
+      }
+
+      function drawLane() {
+        const L = lane();
+
+        drawPalm(W * 0.09, H * 0.38, Math.max(0.7, W / 520), 1);
+        drawPalm(W * 0.91, H * 0.38, Math.max(0.7, W / 520), -1);
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(L.leftTop, L.topY);
+        ctx.lineTo(L.rightTop, L.topY);
+        ctx.lineTo(L.rightBottom, L.bottomY);
+        ctx.lineTo(L.leftBottom, L.bottomY);
+        ctx.closePath();
+
+        const wood = ctx.createLinearGradient(0, L.topY, 0, L.bottomY);
+        wood.addColorStop(0, "#ffd181");
+        wood.addColorStop(0.45, "#e7974c");
+        wood.addColorStop(1, "#a9542f");
+
+        ctx.fillStyle = wood;
+        ctx.fill();
+
+        ctx.strokeStyle = "rgba(255,255,255,0.55)";
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        for (let i = 1; i < 6; i++) {
+          const t = i / 6;
+          const topX = L.leftTop + L.topW * t;
+          const botX = L.leftBottom + L.bottomW * t;
+          ctx.strokeStyle = "rgba(111,55,26,0.22)";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(topX, L.topY);
+          ctx.lineTo(botX, L.bottomY);
+          ctx.stroke();
+        }
+
+        if (laneGlow > 0) {
+          ctx.globalAlpha = laneGlow * 0.32;
+          ctx.fillStyle = "#fff56a";
+          ctx.fill();
+          ctx.globalAlpha = 1;
+        }
+
+        ctx.restore();
+
+        ctx.strokeStyle = "#3af5ff";
+        ctx.lineWidth = Math.max(5, W * 0.014);
+        ctx.shadowColor = "#3af5ff";
+        ctx.shadowBlur = 18;
+
+        ctx.beginPath();
+        ctx.moveTo(L.leftTop - 10, L.topY);
+        ctx.lineTo(L.leftBottom - 10, L.bottomY);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(L.rightTop + 10, L.topY);
+        ctx.lineTo(L.rightBottom + 10, L.bottomY);
+        ctx.stroke();
+
+        ctx.shadowBlur = 0;
+      }
+
+      function drawPocketGlow() {
+        if (mode !== "bowling" || ball.rolling || rollNumber !== 1) return;
+
+        const target = pocketTarget();
+        const pulse = 0.65 + Math.sin(performance.now() * 0.006) * 0.22;
+
+        ctx.save();
+        ctx.globalAlpha = 0.42 * pulse;
+        ctx.shadowColor = "#fff06a";
+        ctx.shadowBlur = 22;
+        ctx.fillStyle = "#fff06a";
+        ctx.beginPath();
+        ctx.arc(target.x, target.y, Math.max(10, W * 0.027), 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.globalAlpha = 0.75 * pulse;
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = "#ffffff";
+        ctx.beginPath();
+        ctx.arc(target.x, target.y, Math.max(15, W * 0.039), 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      function drawPin(p) {
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.angle + (p.knocked ? Math.PI / 2 : Math.sin(p.wobble) * 0.035));
+
+        const scale = p.knocked ? 1.07 : 1;
+        const w = p.r * 2.35 * scale;
+        const h = p.r * 3.55 * scale;
+
+        ctx.shadowColor = "rgba(0,0,0,0.38)";
+        ctx.shadowBlur = 10;
+        ctx.shadowOffsetY = 5;
+
+        if (pinImage.complete && pinImage.naturalWidth > 0) {
+          ctx.drawImage(pinImage, -w / 2, -h / 2, w, h);
+        } else {
+          ctx.fillStyle = "#fff7e8";
+          ctx.beginPath();
+          ctx.ellipse(0, 0, p.r * 0.75, p.r * 1.55, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = "#f04c52";
+          ctx.fillRect(-p.r * 0.6, -p.r * 0.35, p.r * 1.2, p.r * 0.28);
+        }
+
+        if (!p.knocked) {
+          ctx.shadowBlur = 0;
+          ctx.fillStyle = "#111";
+          ctx.beginPath();
+          ctx.arc(-p.r * 0.25, -p.r * 0.18, 1.6, 0, Math.PI * 2);
+          ctx.arc(p.r * 0.25, -p.r * 0.18, 1.6, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.strokeStyle = "#111";
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+
+          if (p.happy) ctx.arc(0, p.r * 0.04, p.r * 0.25, 0.1, Math.PI - 0.1);
+          else {
+            ctx.moveTo(-p.r * 0.22, p.r * 0.12);
+            ctx.lineTo(p.r * 0.22, p.r * 0.12);
+          }
+
+          ctx.stroke();
+        }
+
+        ctx.restore();
+      }
+
+      function drawBowlingBall() {
+        for (const t of ball.trail) {
+          if (t.life <= 0) continue;
+          ctx.globalAlpha = Math.max(0, t.life / 0.36) * 0.45;
+          ctx.fillStyle = "#37e6ff";
+          ctx.beginPath();
+          ctx.arc(t.x, t.y, ball.r * (0.7 + t.life), 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        ctx.globalAlpha = 1;
+
+        const g = ctx.createRadialGradient(ball.x - ball.r * 0.35, ball.y - ball.r * 0.35, 2, ball.x, ball.y, ball.r * 1.2);
+        g.addColorStop(0, "#ffffff");
+        g.addColorStop(0.2, "#ffe66d");
+        g.addColorStop(0.55, "#ff4fa3");
+        g.addColorStop(1, "#32164d");
+
+        ctx.shadowColor = "#ff4fa3";
+        ctx.shadowBlur = ball.rolling ? 18 : 9;
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = "rgba(0,0,0,0.35)";
+        ctx.beginPath();
+        ctx.arc(ball.x - ball.r * 0.18, ball.y - ball.r * 0.12, ball.r * 0.13, 0, Math.PI * 2);
+        ctx.arc(ball.x + ball.r * 0.18, ball.y - ball.r * 0.18, ball.r * 0.11, 0, Math.PI * 2);
+        ctx.arc(ball.x + ball.r * 0.02, ball.y + ball.r * 0.13, ball.r * 0.10, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      function drawMascot() {
+        if (mode !== "bowling") return;
+
+        const x = W * 0.13;
+        const y = H * 0.78;
+        const size = Math.max(45, Math.min(72, W * 0.13));
+
+        ctx.save();
+        ctx.globalAlpha = 0.92;
+        ctx.translate(x, y + Math.sin(performance.now() * 0.004) * 4);
+        ctx.rotate(-0.08);
+
+        if (pinImage.complete && pinImage.naturalWidth > 0) {
+          ctx.drawImage(pinImage, -size / 2, -size, size, size * 1.55);
+        }
+
+        ctx.fillStyle = "rgba(255,255,255,0.95)";
+        ctx.font = "900 13px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText("ROLL!", 0, -size - 10);
+        ctx.restore();
+      }
+
+      function drawPoolRoom() {
+        drawBackground();
+
+        ctx.save();
+        ctx.textAlign = "center";
+        ctx.font = "1000 " + Math.max(24, Math.min(42, W * 0.08)) + "px Arial";
+        ctx.lineWidth = 6;
+        ctx.strokeStyle = "rgba(31,8,49,0.9)";
+        ctx.strokeText("Rollies Pool Room", W / 2, H * 0.17);
+        ctx.fillStyle = "#fff06a";
+        ctx.fillText("Rollies Pool Room", W / 2, H * 0.17);
+        ctx.restore();
+
+        const t = pool.table;
+
+        ctx.save();
+        ctx.shadowColor = "rgba(0,0,0,0.45)";
+        ctx.shadowBlur = 28;
+
+        ctx.fillStyle = "#5a2b14";
+        roundRect(ctx, t.x - 18, t.y - 18, t.w + 36, t.h + 36, 28);
+        ctx.fill();
+
+        ctx.fillStyle = "#115d4d";
+        roundRect(ctx, t.x, t.y, t.w, t.h, 20);
+        ctx.fill();
+
+        ctx.strokeStyle = "rgba(255,255,255,0.24)";
+        ctx.lineWidth = 3;
+        roundRect(ctx, t.x + 10, t.y + 10, t.w - 20, t.h - 20, 16);
+        ctx.stroke();
+
+        for (const p of pool.pockets) {
+          ctx.fillStyle = "#050309";
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.strokeStyle = "rgba(255,255,255,0.18)";
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        }
+
+        drawPoolCueStickReady();
+        drawPoolBall(pool.cue, "#ffffff", "C");
+
+        for (const b of pool.balls) {
+          if (!b.sunk) drawPoolBall(b, b.color, b.n);
+        }
+
+        ctx.restore();
+      }
+
+      function drawPoolCueStickReady() {
+        if (mode !== "pool") return;
+        if (poolMoving()) return;
+        if (dragging) return;
+
+        const cue = pool.cue;
+        const pulse = 0.68 + Math.sin(performance.now() * 0.006) * 0.18;
+        const stickLength = Math.max(120, Math.min(220, W * 0.25));
+        const angle = -0.18;
+
+        const tipX = cue.x - cue.r - 10;
+        const tipY = cue.y + 2;
+
+        const backX = tipX - Math.cos(angle) * stickLength;
+        const backY = tipY - Math.sin(angle) * stickLength;
+
+        ctx.save();
+
+        ctx.globalAlpha = 0.94;
+        ctx.strokeStyle = "rgba(69, 34, 12, 0.98)";
+        ctx.lineWidth = Math.max(7, W * 0.008);
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        ctx.moveTo(backX, backY);
+        ctx.lineTo(tipX, tipY);
+        ctx.stroke();
+
+        ctx.strokeStyle = "rgba(255, 226, 150, 0.96)";
+        ctx.lineWidth = Math.max(3, W * 0.004);
+        ctx.beginPath();
+        ctx.moveTo(backX, backY);
+        ctx.lineTo(tipX, tipY);
+        ctx.stroke();
+
+        ctx.fillStyle = "#ffffff";
+        ctx.beginPath();
+        ctx.arc(tipX, tipY, 4, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.globalAlpha = pulse;
+        ctx.strokeStyle = "#fff06a";
+        ctx.lineWidth = 3;
+        ctx.setLineDash([8, 8]);
+        ctx.beginPath();
+        ctx.moveTo(cue.x + cue.r + 10, cue.y);
+        ctx.lineTo(cue.x + Math.min(230, W * 0.28), cue.y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = "#fff06a";
+        ctx.font = "1000 " + Math.max(13, Math.min(18, W * 0.035)) + "px Arial";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = "rgba(31,8,49,0.9)";
+        ctx.strokeText("PULL", cue.x - cue.r - 55, cue.y - 32);
+        ctx.fillText("PULL", cue.x - cue.r - 55, cue.y - 32);
+
+        ctx.restore();
+      }
+
+      function drawPoolBall(b, color, label) {
+        ctx.save();
+
+        ctx.shadowColor = "rgba(0,0,0,0.35)";
+        ctx.shadowBlur = 8;
+        ctx.shadowOffsetY = 4;
+
+        const g = ctx.createRadialGradient(b.x - b.r * 0.35, b.y - b.r * 0.35, 2, b.x, b.y, b.r * 1.2);
+        g.addColorStop(0, "#ffffff");
+        g.addColorStop(0.25, color);
+        g.addColorStop(1, "#111827");
+
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = "rgba(255,255,255,0.88)";
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.r * 0.45, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = "#201129";
+        ctx.font = "900 " + Math.max(9, b.r * 0.72) + "px Arial";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(label, b.x, b.y + 0.5);
+
+        ctx.restore();
+      }
+
+      function drawCasinoRoom() {
+        drawBackground(true);
+
+        ctx.save();
+        ctx.textAlign = "center";
+
+        ctx.font = "1000 " + Math.max(24, Math.min(44, W * 0.075)) + "px Arial";
+        ctx.lineWidth = 8;
+        ctx.strokeStyle = "rgba(31,8,49,0.95)";
+        ctx.strokeText("Speak Easy Rollie Casino", W / 2, H * 0.15);
+        ctx.fillStyle = "#fff06a";
+        ctx.fillText("Speak Easy Rollie Casino", W / 2, H * 0.15);
+
+        ctx.font = "900 " + Math.max(13, Math.min(18, W * 0.034)) + "px Arial";
+        ctx.fillStyle = "#ffffff";
+        ctx.fillText("Arcade tokens only • No real money", W / 2, H * 0.2);
+
+        ctx.restore();
+
+        if (casino.mode === "menu") drawCasinoMenuVisual();
+        if (casino.mode === "slots") drawSlots();
+        if (casino.mode === "cards") drawCards();
+      }
+
+      function drawCasinoMenuVisual() {
+        ctx.save();
+
+        const boxW = Math.min(W * 0.84, 620);
+        const boxH = Math.min(H * 0.42, 320);
+        const x = W / 2 - boxW / 2;
+        const y = H * 0.32;
+
+        ctx.shadowColor = "rgba(255,240,106,0.35)";
+        ctx.shadowBlur = 28;
+        ctx.fillStyle = "rgba(30, 7, 36, 0.82)";
+        roundRect(ctx, x, y, boxW, boxH, 30);
+        ctx.fill();
+
+        ctx.strokeStyle = "rgba(255,240,106,0.55)";
+        ctx.lineWidth = 3;
+        roundRect(ctx, x, y, boxW, boxH, 30);
+        ctx.stroke();
+
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.font = "1000 " + Math.max(28, Math.min(54, W * 0.1)) + "px Arial";
+        ctx.fillStyle = "#fff06a";
+        ctx.fillText("🎰  🃏  🎲", W / 2, y + boxH * 0.35);
+
+        ctx.font = "900 " + Math.max(16, Math.min(24, W * 0.045)) + "px Arial";
+        ctx.fillStyle = "#ffffff";
+        ctx.fillText("Use the buttons to pick a game.", W / 2, y + boxH * 0.68);
+
+        ctx.restore();
+      }
+
+      function drawSlots() {
+        ctx.save();
+
+        const boxW = Math.min(W * 0.88, 640);
+        const boxH = Math.min(H * 0.48, 360);
+        const x = W / 2 - boxW / 2;
+        const y = H * 0.28;
+
+        ctx.shadowColor = "rgba(255,240,106,0.38)";
+        ctx.shadowBlur = 28;
+        ctx.fillStyle = "rgba(35, 7, 42, 0.88)";
+        roundRect(ctx, x, y, boxW, boxH, 32);
+        ctx.fill();
+
+        ctx.strokeStyle = "rgba(255,240,106,0.7)";
+        ctx.lineWidth = 4;
+        roundRect(ctx, x, y, boxW, boxH, 32);
+        ctx.stroke();
+
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+
+        ctx.font = "1000 " + Math.max(18, Math.min(30, W * 0.055)) + "px Arial";
+        ctx.fillStyle = "#fff06a";
+        ctx.fillText("Rollie Slots", W / 2, y + boxH * 0.12);
+
+        for (let i = 0; i < 3; i++) {
+          const reelW = boxW * 0.24;
+          const reelH = boxH * 0.34;
+          const rx = x + boxW * (0.18 + i * 0.31);
+          const ry = y + boxH * 0.27;
+
+          ctx.fillStyle = "#fff7df";
+          roundRect(ctx, rx, ry, reelW, reelH, 20);
+          ctx.fill();
+
+          ctx.strokeStyle = "#3b123f";
+          ctx.lineWidth = 4;
+          roundRect(ctx, rx, ry, reelW, reelH, 20);
+          ctx.stroke();
+
+          ctx.font = "1000 " + Math.max(38, Math.min(72, W * 0.13)) + "px Arial";
+          ctx.fillStyle = "#1c1028";
+          ctx.fillText(casino.reels[i], rx + reelW / 2, ry + reelH / 2);
+        }
+
+        ctx.font = "1000 " + Math.max(20, Math.min(34, W * 0.064)) + "px Arial";
+        ctx.fillStyle = "#fff06a";
+        ctx.fillText(casino.message, W / 2, y + boxH * 0.75);
+
+        ctx.font = "900 " + Math.max(13, Math.min(20, W * 0.038)) + "px Arial";
+        ctx.fillStyle = "#ffffff";
+        ctx.fillText(casino.sub, W / 2, y + boxH * 0.87);
+
+        ctx.restore();
+      }
+
+      function drawCards() {
+        ctx.save();
+
+        const boxW = Math.min(W * 0.92, 700);
+        const boxH = Math.min(H * 0.5, 380);
+        const x = W / 2 - boxW / 2;
+        const y = H * 0.27;
+
+        ctx.shadowColor = "rgba(255,240,106,0.32)";
+        ctx.shadowBlur = 28;
+        ctx.fillStyle = "rgba(27, 7, 35, 0.86)";
+        roundRect(ctx, x, y, boxW, boxH, 32);
+        ctx.fill();
+
+        ctx.strokeStyle = "rgba(255,240,106,0.6)";
+        ctx.lineWidth = 4;
+        roundRect(ctx, x, y, boxW, boxH, 32);
+        ctx.stroke();
+
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+
+        ctx.font = "1000 " + Math.max(18, Math.min(30, W * 0.055)) + "px Arial";
+        ctx.fillStyle = "#fff06a";
+        ctx.fillText("Rollie Card Room", W / 2, y + boxH * 0.1);
+
+        const cardW = Math.min(80, boxW * 0.15);
+        const cardH = cardW * 1.38;
+        const gap = Math.min(13, boxW * 0.02);
+        const totalW = cardW * 5 + gap * 4;
+        const startX = W / 2 - totalW / 2;
+        const cardY = y + boxH * 0.22;
+
+        for (let i = 0; i < 5; i++) {
+          const cx = startX + i * (cardW + gap);
+          ctx.fillStyle = "#fff7df";
+          roundRect(ctx, cx, cardY, cardW, cardH, 14);
+          ctx.fill();
+
+          ctx.strokeStyle = "#3b123f";
+          ctx.lineWidth = 3;
+          roundRect(ctx, cx, cardY, cardW, cardH, 14);
+          ctx.stroke();
+
+          ctx.fillStyle = "#1c1028";
+          ctx.font = "1000 " + Math.max(18, Math.min(30, cardW * 0.36)) + "px Arial";
+
+          const c = casino.cards[i];
+          if (c) {
+            const red = c.suit === "♥" || c.suit === "♦";
+            ctx.fillStyle = red ? "#c0174c" : "#1c1028";
+            ctx.fillText(c.rank, cx + cardW / 2, cardY + cardH * 0.38);
+            ctx.font = "1000 " + Math.max(22, Math.min(36, cardW * 0.5)) + "px Arial";
+            ctx.fillText(c.suit, cx + cardW / 2, cardY + cardH * 0.66);
+          } else {
+            ctx.fillText("?", cx + cardW / 2, cardY + cardH / 2);
+          }
+        }
+
+        ctx.font = "1000 " + Math.max(20, Math.min(34, W * 0.064)) + "px Arial";
+        ctx.fillStyle = "#fff06a";
+        ctx.fillText(casino.message, W / 2, y + boxH * 0.76);
+
+        ctx.font = "900 " + Math.max(13, Math.min(20, W * 0.038)) + "px Arial";
+        ctx.fillStyle = "#ffffff";
+        ctx.fillText(casino.sub, W / 2, y + boxH * 0.88);
+
+        ctx.restore();
+      }
+
+      function drawAim() {
+        if (!dragging) return;
+
+        if (mode === "bowling" && ball.rolling) return;
+        if (mode === "pool" && poolMoving()) return;
+
+        const dx = dragStart.x - dragNow.x;
+        const dy = dragStart.y - dragNow.y;
+        const pull = Math.hypot(dx, dy);
+        if (pull < 8) return;
+
+        let startX = ball.x;
+        let startY = ball.y;
+
+        if (mode === "pool") {
+          startX = pool.cue.x;
+          startY = pool.cue.y;
+        }
+
+        const power = Math.min(1, pull / 185);
+
+        if (mode === "pool") {
+          const angle = Math.atan2(dy, dx);
+          const stickLength = Math.max(110, Math.min(200, W * 0.24));
+          const pullBack = 18 + power * 76;
+
+          const tipX = startX - Math.cos(angle) * (pool.cue.r + pullBack);
+          const tipY = startY - Math.sin(angle) * (pool.cue.r + pullBack);
+          const backX = tipX - Math.cos(angle) * stickLength;
+          const backY = tipY - Math.sin(angle) * stickLength;
+
+          ctx.save();
+
+          ctx.strokeStyle = "rgba(69, 34, 12, 0.98)";
+          ctx.lineWidth = Math.max(7, W * 0.008);
+          ctx.lineCap = "round";
+          ctx.beginPath();
+          ctx.moveTo(backX, backY);
+          ctx.lineTo(tipX, tipY);
+          ctx.stroke();
+
+          ctx.strokeStyle = "rgba(255, 226, 150, 0.98)";
+          ctx.lineWidth = Math.max(3, W * 0.004);
+          ctx.beginPath();
+          ctx.moveTo(backX, backY);
+          ctx.lineTo(tipX, tipY);
+          ctx.stroke();
+
+          ctx.fillStyle = "#ffffff";
+          ctx.beginPath();
+          ctx.arc(tipX, tipY, 4, 0, Math.PI * 2);
+          ctx.fill();
+
+          const aimEndX = startX + Math.cos(angle) * Math.min(420, W * 0.52);
+          const aimEndY = startY + Math.sin(angle) * Math.min(420, W * 0.52);
+
+          ctx.strokeStyle = "rgba(255,255,255,0.76)";
+          ctx.lineWidth = 4;
+          ctx.lineCap = "round";
+          ctx.setLineDash([10, 9]);
+          ctx.beginPath();
+          ctx.moveTo(startX, startY);
+          ctx.lineTo(aimEndX, aimEndY);
+          ctx.stroke();
+          ctx.setLineDash([]);
+
+          ctx.fillStyle = power > 0.82 ? "#ff4fa3" : "#ffe66d";
+          ctx.beginPath();
+          ctx.arc(aimEndX, aimEndY, 7 + power * 8, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.fillStyle = "rgba(20,8,34,0.75)";
+          roundRect(ctx, W / 2 - 82, H * 0.82, 164, 20, 999);
+          ctx.fill();
+
+          ctx.fillStyle = power > 0.82 ? "#ff4fa3" : "#37e6ff";
+          roundRect(ctx, W / 2 - 78, H * 0.82 + 4, 156 * power, 12, 999);
+          ctx.fill();
+
+          ctx.restore();
+          return;
+        }
+
+        const endX = startX + dx * 0.58;
+        const endY = startY + dy * 0.58;
+
+        ctx.strokeStyle = "rgba(255,255,255,0.78)";
+        ctx.lineWidth = 5;
+        ctx.lineCap = "round";
+        ctx.setLineDash([12, 10]);
+        ctx.beginPath();
+        ctx.moveTo(startX, startY);
+        ctx.lineTo(endX, endY);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        ctx.fillStyle = power > 0.82 ? "#ff4fa3" : "#ffe66d";
+        ctx.beginPath();
+        ctx.arc(endX, endY, 8 + power * 10, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      function drawEffects() {
+        for (const s of sparks) {
+          ctx.globalAlpha = Math.max(0, s.life);
+          ctx.fillStyle = "#bff8ff";
+          ctx.beginPath();
+          ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        ctx.globalAlpha = 1;
+
+        for (const c of confetti) {
+          ctx.save();
+          ctx.globalAlpha = Math.max(0, Math.min(1, c.life));
+          ctx.translate(c.x, c.y);
+          ctx.rotate(c.rot);
+          ctx.fillStyle = c.color;
+          ctx.fillRect(-c.size / 2, -c.size / 2, c.size, c.size * 0.55);
+          ctx.restore();
+        }
+      }
+
+      function drawMessage() {
+        if (mode === "casino") return;
+
+        let text = message;
+        let sub = subMessage;
+        let timer = messageTimer;
+
+        if (mode === "pool") {
+          text = pool.message;
+          sub = "";
+          timer = pool.messageTimer;
+        }
+
+        if (timer <= 0) return;
+
+        const alpha = Math.min(1, timer);
+
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+
+        ctx.font = "1000 " + Math.max(31, Math.min(64, W * 0.115)) + "px Arial";
+        ctx.lineWidth = 8;
+        ctx.strokeStyle = "rgba(31, 8, 49, 0.9)";
+        ctx.strokeText(text, W / 2, H * 0.49);
+
+        ctx.fillStyle = "#fff06a";
+        ctx.fillText(text, W / 2, H * 0.49);
+
+        if (sub) {
+          ctx.font = "900 " + Math.max(15, Math.min(22, W * 0.045)) + "px Arial";
+          ctx.lineWidth = 5;
+          ctx.strokeStyle = "rgba(31, 8, 49, 0.85)";
+          ctx.strokeText(sub, W / 2, H * 0.55);
+
+          ctx.fillStyle = "#ffffff";
+          ctx.fillText(sub, W / 2, H * 0.55);
+        }
+
+        ctx.restore();
+      }
+
+      function drawBowling() {
+        drawBackground();
+        drawLane();
+        drawPocketGlow();
+
+        const sortedPins = [...pins].sort((a, b) => a.y - b.y);
+        for (const p of sortedPins) drawPin(p);
+
+        drawMascot();
+        drawBowlingBall();
+      }
+
+      function roundRect(c, x, y, w, h, r) {
+        const rr = Math.min(r, w / 2, h / 2);
+        c.beginPath();
+        c.moveTo(x + rr, y);
+        c.arcTo(x + w, y, x + w, y + h, rr);
+        c.arcTo(x + w, y + h, x, y + h, rr);
+        c.arcTo(x, y + h, x, y, rr);
+        c.arcTo(x, y, x + w, y, rr);
+        c.closePath();
+      }
+
+      function draw() {
+        ctx.save();
+
+        if (screenShake > 0) {
+          ctx.translate((Math.random() - 0.5) * screenShake, (Math.random() - 0.5) * screenShake);
+        }
+
+        if (mode === "pool") drawPoolRoom();
+        else if (mode === "casino") drawCasinoRoom();
+        else drawBowling();
+
+        drawAim();
+        drawEffects();
+        drawMessage();
+
+        if (["menu", "postBowling", "casinoUnlock"].includes(mode)) {
+          ctx.fillStyle = "rgba(0,0,0,0.15)";
+          ctx.fillRect(0, 0, W, H);
+        }
+
+        ctx.restore();
+      }
+
+      let last = performance.now();
+
+      function loop(now) {
+        const dt = Math.min(0.033, (now - last) / 1000);
+        last = now;
+
+        if (mode === "bowling") updateBowling(dt);
+        if (mode === "pool") updatePool(dt);
+
+        updateEffects(dt);
+        draw();
+        requestAnimationFrame(loop);
+      }
+
+      resize();
+      resetBowlingBall();
+      resetPins();
+      requestAnimationFrame(loop);
+    })();
+  </script>
+</body>
+</html>
