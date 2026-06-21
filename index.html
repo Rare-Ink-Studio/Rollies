@@ -7,6 +7,7 @@
     content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
   />
   <title>Rollies</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     html, body {
       margin: 0;
@@ -541,8 +542,8 @@
   <div class="overlay" id="startScreen">
     <div class="pageCard">
       <div class="pagePill">Bowling • Bonus Games • Tickets</div>
-      <h1 class="homeTitle">Rollies</h1>
-      <div class="pageLine">Play. Unlock. Win Tickets.</div>
+      <h1 class="homeTitle" id="homeTitle">Rollies</h1>
+      <div class="pageLine" id="homeLine">Play. Unlock. Win Tickets.</div>
       <div class="pageMeta">
         <div class="metaChip">🎳 Bowl</div>
         <div class="metaChip">🎮 Unlock Games</div>
@@ -558,7 +559,7 @@
   <div class="overlay hide" id="bowlingDoneScreen">
     <div class="pageCard">
       <div class="pagePill">Unlocked</div>
-      <h2 class="pageTitle">Pool Room Open</h2>
+      <h2 class="pageTitle" id="poolTitle">Pool Room Open</h2>
       <div class="scoreBar">
         <div class="scoreBarLabel">Final Score</div>
         <div class="scoreBarValue" id="finalScoreText">Final Score: 0</div>
@@ -574,8 +575,8 @@
   <div class="overlay hide" id="casinoUnlockScreen">
     <div class="pageCard">
       <div class="pagePill">Unlocked</div>
-      <h2 class="pageTitle">Speak Easy Open</h2>
-      <div class="pageLine">You found the hidden room.</div>
+      <h2 class="pageTitle" id="casinoUnlockTitle">Speak Easy Open</h2>
+      <div class="pageLine" id="casinoUnlockLine">You found the hidden room.</div>
       <div class="pageButtons">
         <button class="btn pink" id="enterCasinoBtn">✨ ENTER SPEAK EASY</button>
         <button class="btn" id="unlockBowlBtn">🎳 BOWL AGAIN</button>
@@ -587,8 +588,8 @@
   <div class="overlay hide" id="casinoMenuScreen">
     <div class="pageCard">
       <div class="pagePill">Speak Easy</div>
-      <h2 class="pageTitle">Choose a Game</h2>
-      <div class="pageLine">Free house chips. Win tickets.</div>
+      <h2 class="pageTitle" id="casinoMenuTitle">Choose a Game</h2>
+      <div class="pageLine" id="casinoMenuLine">Free house chips. Win tickets.</div>
       <div class="pageButtons">
         <button class="btn blue" id="cardsBtn">🃏 PLAY 5-CARD STUD</button>
         <button class="btn pink" id="slotsBtn">🎰 SLOTS</button>
@@ -647,6 +648,132 @@
       const pokerBetBtn = document.getElementById("pokerBetBtn");
       const pokerFoldBtn = document.getElementById("pokerFoldBtn");
       const pokerNextBtn = document.getElementById("pokerNextBtn");
+
+      // ---------------------------------------------------------
+      // Rollies Runtime Config Bridge
+      // Admin (doodlabs.app/admin) saves directly to Supabase.
+      // This game reads the live settings at startup.
+      // ---------------------------------------------------------
+      const ROLLIES_SUPABASE_URL = "https://fshvettlltcujmwvikfq.supabase.co";
+      const ROLLIES_SUPABASE_KEY = "sb_publishable_ARrX-vYhy8l-yhs6384S_g_n6214taB";
+      const rolliesDb = window.supabase
+        ? window.supabase.createClient(ROLLIES_SUPABASE_URL, ROLLIES_SUPABASE_KEY)
+        : null;
+
+      const runtimeConfig = {
+        home: {
+          title: "Rollies",
+          tagline: "Play. Unlock. Win Tickets.",
+          play_button_text: "🎳 PLAY",
+          background_url: ""
+        },
+        pool: {
+          title: "Pool Room Open",
+          enter_button_text: "🎱 ENTER POOL ROOM",
+          background_url: ""
+        },
+        casino_unlock: {
+          title: "Speak Easy Open",
+          subtitle: "You found the hidden room.",
+          enter_button_text: "✨ ENTER SPEAK EASY",
+          background_url: ""
+        },
+        casino_menu: {
+          title: "Choose a Game",
+          subtitle: "Free house chips. Win tickets.",
+          poker_button_text: "🃏 PLAY 5-CARD STUD",
+          slots_button_text: "🎰 SLOTS",
+          slots_enabled: false,
+          background_url: ""
+        },
+        poker: {
+          enabled: true,
+          ante: 10,
+          daily_house_chips: 500,
+          win_ticket_reward: 5,
+          big_hand_ticket_bonus: 10
+        },
+        unlocks: { pool_unlock_score: 100 }
+      };
+
+      function mergeRuntimeConfig(target, source) {
+        if (!source || typeof source !== "object") return target;
+        Object.keys(source).forEach((key) => {
+          if (source[key] && typeof source[key] === "object" && !Array.isArray(source[key])) {
+            target[key] = mergeRuntimeConfig(target[key] || {}, source[key]);
+          } else {
+            target[key] = source[key];
+          }
+        });
+        return target;
+      }
+
+      function setRuntimeBackground(variableName, imageUrl) {
+        if (!imageUrl || typeof imageUrl !== "string") return;
+        const safeUrl = imageUrl.replace(/"/g, "\\\"");
+        document.documentElement.style.setProperty(variableName, `url("${safeUrl}")`);
+      }
+
+      function dailyHouseChips() {
+        return Math.max(1, Number(runtimeConfig.poker.daily_house_chips) || 500);
+      }
+
+      function pokerAnte() {
+        return Math.max(1, Number(runtimeConfig.poker.ante) || 10);
+      }
+
+      function pokerWinTickets() {
+        return Math.max(1, Number(runtimeConfig.poker.win_ticket_reward) || 5);
+      }
+
+      function bigHandTicketBonus() {
+        return Math.max(0, Number(runtimeConfig.poker.big_hand_ticket_bonus) || 0);
+      }
+
+      function applyRuntimeConfig() {
+        const byId = (id) => document.getElementById(id);
+        const setText = (id, value) => {
+          const element = byId(id);
+          if (element && typeof value === "string" && value.trim()) element.textContent = value;
+        };
+
+        setText("homeTitle", runtimeConfig.home.title);
+        setText("homeLine", runtimeConfig.home.tagline);
+        setText("playBtn", runtimeConfig.home.play_button_text);
+        setText("poolTitle", runtimeConfig.pool.title);
+        setText("poolRoomBtn", runtimeConfig.pool.enter_button_text);
+        setText("casinoUnlockTitle", runtimeConfig.casino_unlock.title);
+        setText("casinoUnlockLine", runtimeConfig.casino_unlock.subtitle);
+        setText("enterCasinoBtn", runtimeConfig.casino_unlock.enter_button_text);
+        setText("casinoMenuTitle", runtimeConfig.casino_menu.title);
+        setText("casinoMenuLine", runtimeConfig.casino_menu.subtitle);
+        setText("cardsBtn", runtimeConfig.casino_menu.poker_button_text);
+        setText("slotsBtn", runtimeConfig.casino_menu.slots_button_text);
+
+        const slotsOn = runtimeConfig.casino_menu.slots_enabled === true;
+        slotsBtn.classList.toggle("hide", !slotsOn);
+        cardsBtn.classList.toggle("hide", runtimeConfig.poker.enabled === false);
+
+        setRuntimeBackground("--rollies-home-bg", runtimeConfig.home.background_url);
+        setRuntimeBackground("--rollies-pool-bg", runtimeConfig.pool.background_url);
+        setRuntimeBackground("--rollies-casino-bg", runtimeConfig.casino_menu.background_url || runtimeConfig.casino_unlock.background_url);
+      }
+
+      async function loadRuntimeConfig() {
+        if (!rolliesDb) return;
+        try {
+          const { data, error } = await rolliesDb
+            .from("game_runtime_config")
+            .select("config")
+            .eq("game_key", "rollies")
+            .maybeSingle();
+          if (error) throw error;
+          if (data && data.config) mergeRuntimeConfig(runtimeConfig, data.config);
+          applyRuntimeConfig();
+        } catch (error) {
+          console.warn("Rollies live settings could not load. Using built-in defaults.", error);
+        }
+      }
 
       function loadImage(paths) {
         const img = new Image();
@@ -956,12 +1083,12 @@
           const savedDay = localStorage.getItem("rollies_house_chip_day");
           if (savedDay !== todayKey()) {
             localStorage.setItem("rollies_house_chip_day", todayKey());
-            localStorage.setItem("rollies_house_chips", "500");
+            localStorage.setItem("rollies_house_chips", String(dailyHouseChips()));
           }
-          casino.tokens = Math.max(0, Number(localStorage.getItem("rollies_house_chips") || 500));
+          casino.tokens = Math.max(0, Number(localStorage.getItem("rollies_house_chips") || dailyHouseChips()));
           casino.tickets = Math.max(0, Number(localStorage.getItem("rollies_tickets") || 0));
         } catch {
-          casino.tokens = 500;
+          casino.tokens = dailyHouseChips();
           casino.tickets = 0;
         }
       }
@@ -975,6 +1102,7 @@
       }
 
       loadCasinoWallet();
+      loadRuntimeConfig();
 
       function hideAllScreens() {
         pokerControls.classList.remove("show");
@@ -1173,6 +1301,8 @@
         hideHud();
         backBtn.classList.add("hide");
         finalScoreText.textContent = "Final Score: " + bowlScore;
+        const poolUnlocked = bowlScore >= (Number(runtimeConfig.unlocks.pool_unlock_score) || 100);
+        poolRoomBtn.classList.toggle("hide", !poolUnlocked);
         bowlingDoneScreen.classList.remove("hide");
       }
 
@@ -1897,20 +2027,20 @@
         pokerNextBtn.classList.toggle("hide", !done);
         if (done) return;
         if (p.state === "call") {
-          pokerCheckBtn.textContent = "CALL 10";
+          pokerCheckBtn.textContent = "CALL " + pokerAnte();
           pokerBetBtn.classList.add("hide");
           pokerFoldBtn.textContent = "FOLD";
         } else {
           pokerCheckBtn.textContent = "CHECK";
-          pokerBetBtn.textContent = "BET 10";
+          pokerBetBtn.textContent = "BET " + pokerAnte();
           pokerBetBtn.classList.remove("hide");
           pokerFoldBtn.textContent = "FOLD";
         }
       }
 
       function startPokerHand() {
-        if (casino.tokens < 10) {
-          casino.poker = { state:"finished", player:[], cpu:[], pot:0, round:0, result:"You need 10 house chips. Your free chip refill returns tomorrow." };
+        if (casino.tokens < pokerAnte()) {
+          casino.poker = { state:"finished", player:[], cpu:[], pot:0, round:0, result:"You need " + pokerAnte() + " house chips. Your free chip refill returns tomorrow." };
           casino.message = "OUT OF HOUSE CHIPS";
           casino.sub = "Free refill each day";
           setPokerStatus(casino.poker.result);
@@ -1918,20 +2048,20 @@
           return;
         }
         const deck = makeDeck();
-        casino.tokens -= 10;
+        casino.tokens -= pokerAnte();
         const p = casino.poker = {
           deck,
           player:[deck.pop(), deck.pop()],
           cpu:[deck.pop(), deck.pop()],
-          pot:20,
+          pot:pokerAnte() * 2,
           round:1,
           state:"player",
-          result:"Ante is 10 house chips. Your turn: check, bet 10, or fold.",
+          result:"Ante is " + pokerAnte() + " house chips. Your turn: check, bet " + pokerAnte() + ", or fold.",
           cpuFolded:false,
           revealCpu:false
         };
         casino.message = "ROUND 1 • 2 CARDS";
-        casino.sub = "Pot: 20 house chips";
+        casino.sub = "Pot: " + p.pot + " house chips";
         setPokerStatus(p.result);
         saveCasinoWallet();
         updatePokerButtons();
@@ -1943,7 +2073,7 @@
         p.revealCpu = true;
         if (winner === "player") {
           casino.tokens += p.pot;
-          const tickets = Math.max(1, Math.floor(p.pot / 20));
+          const tickets = pokerWinTickets();
           casino.tickets += tickets;
           p.result = "CPU FOLDS — You win " + p.pot + " house chips and " + tickets + " Rollies Ticket" + (tickets === 1 ? "!" : "s!");
           casino.message = "CPU FOLDS!";
@@ -1968,11 +2098,11 @@
         }
         if (p.player.length === 5) {
           p.state = "player";
-          p.result = "Final betting round. Check, bet 10, or fold.";
+          p.result = "Final betting round. Check, bet " + pokerAnte() + ", or fold.";
           casino.message = "FINAL ROUND • 5 CARDS";
         } else {
           p.state = "player";
-          p.result = "Round " + p.round + ": another card is dealt. Check, bet 10, or fold.";
+          p.result = "Round " + p.round + ": another card is dealt. Check, bet " + pokerAnte() + ", or fold.";
           casino.message = "ROUND " + p.round + " • " + p.player.length + " CARDS";
         }
         casino.sub = "Pot: " + p.pot + " house chips";
@@ -1987,8 +2117,8 @@
         const playerName = handName(p.player), cpuName = handName(p.cpu);
         if (result > 0) {
           casino.tokens += p.pot;
-          const bonus = handScore(p.player)[0] >= 3 ? 1 : 0;
-          const tickets = Math.max(1, Math.floor(p.pot / 20)) + bonus;
+          const bonus = handScore(p.player)[0] >= 3 ? bigHandTicketBonus() : 0;
+          const tickets = pokerWinTickets() + bonus;
           casino.tickets += tickets;
           p.result = "YOU WIN with " + playerName + " over CPU " + cpuName + ". +" + p.pot + " chips and +" + tickets + " Ticket" + (tickets === 1 ? "!" : "s!");
           casino.message = "YOU WIN — " + playerName.toUpperCase();
@@ -2012,12 +2142,12 @@
       function resolveAfterCheck() {
         const p = casino.poker;
         const strength = visibleStrength(p.cpu.slice(1));
-        if (strength > .54 && casino.tokens >= 10) {
-          casino.tokens -= 10;
-          p.pot += 10;
+        if (strength > .54 && casino.tokens >= pokerAnte()) {
+          casino.tokens -= pokerAnte();
+          p.pot += pokerAnte();
           p.state = "call";
-          p.result = "CPU bets 10 house chips. Call 10 or fold.";
-          casino.message = "CPU BETS 10";
+          p.result = "CPU bets " + pokerAnte() + " house chips. Call " + pokerAnte() + " or fold.";
+          casino.message = "CPU BETS " + pokerAnte();
           casino.sub = "Pot: " + p.pot + " house chips";
           saveCasinoWallet(); updateCasinoHud(); setPokerStatus(p.result); updatePokerButtons();
         } else if (p.player.length === 5) {
@@ -2031,8 +2161,8 @@
         const p = casino.poker;
         if (!p || p.state === "finished") return;
         if (p.state === "call") {
-          if (casino.tokens < 10) return finishPokerFold("cpu");
-          casino.tokens -= 10; p.pot += 10;
+          if (casino.tokens < pokerAnte()) return finishPokerFold("cpu");
+          casino.tokens -= pokerAnte(); p.pot += pokerAnte();
           if (p.player.length === 5) showdown(); else dealNextStudCard();
           saveCasinoWallet(); updateCasinoHud();
           return;
@@ -2043,11 +2173,11 @@
       function pokerBet() {
         const p = casino.poker;
         if (!p || p.state !== "player") return;
-        if (casino.tokens < 10) { setPokerStatus("You need 10 more house chips to bet. You can check or fold."); return; }
-        casino.tokens -= 10; p.pot += 10;
+        if (casino.tokens < pokerAnte()) { setPokerStatus("You need " + pokerAnte() + " more house chips to bet. You can check or fold."); return; }
+        casino.tokens -= pokerAnte(); p.pot += pokerAnte();
         const callChance = visibleStrength(p.cpu.slice(1));
         if (callChance < .34) return finishPokerFold("player");
-        if (casino.tokens >= 10) { casino.tokens -= 10; p.pot += 10; }
+        if (casino.tokens >= pokerAnte()) { casino.tokens -= pokerAnte(); p.pot += pokerAnte(); }
         p.result = "CPU CALLS your bet.";
         casino.message = "CPU CALLS";
         casino.sub = "Pot: " + p.pot + " house chips";
