@@ -431,6 +431,89 @@
       }
     }
 
+    /* Poker controls: these stay on-screen and are the way the player takes each turn. */
+    .pokerControls {
+      position: fixed;
+      left: 50%;
+      bottom: max(18px, env(safe-area-inset-bottom));
+      transform: translateX(-50%);
+      z-index: 50;
+      display: none;
+      width: min(760px, 94vw);
+      padding: 12px;
+      gap: 10px;
+      justify-content: center;
+      align-items: center;
+      flex-wrap: wrap;
+      border-radius: 24px;
+      background: linear-gradient(180deg, rgba(27, 7, 46, 0.96), rgba(12, 5, 26, 0.95));
+      border: 1px solid rgba(255, 235, 117, 0.45);
+      box-shadow: 0 16px 42px rgba(0,0,0,0.5), 0 0 28px rgba(255, 218, 80, 0.16);
+      backdrop-filter: blur(10px);
+      pointer-events: auto;
+    }
+
+    .pokerControls.show {
+      display: flex;
+    }
+
+    .pokerStatus {
+      flex: 0 0 100%;
+      padding: 8px 12px 4px;
+      text-align: center;
+      color: #fff7c5;
+      font-size: clamp(13px, 3vw, 16px);
+      font-weight: 900;
+      line-height: 1.35;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.55);
+    }
+
+    .pokerBtn {
+      appearance: none;
+      min-width: 126px;
+      border: 0;
+      border-radius: 999px;
+      padding: 13px 18px;
+      color: #2b0f33;
+      background: linear-gradient(180deg, #fff27a, #ff9f1c);
+      box-shadow: 0 6px 0 #b85b00, 0 12px 20px rgba(0,0,0,0.28);
+      font-size: clamp(14px, 3.5vw, 18px);
+      font-weight: 1000;
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+
+    .pokerBtn.secondary {
+      background: linear-gradient(180deg, #bff8ff, #37e6ff);
+      box-shadow: 0 6px 0 #007f9c, 0 12px 20px rgba(0,0,0,0.28);
+    }
+
+    .pokerBtn.danger {
+      background: linear-gradient(180deg, #ffb6da, #ff4fa3);
+      box-shadow: 0 6px 0 #9b1558, 0 12px 20px rgba(0,0,0,0.28);
+    }
+
+    .pokerBtn:active {
+      transform: translateY(3px);
+      box-shadow: 0 3px 0 rgba(0,0,0,0.4), 0 8px 14px rgba(0,0,0,0.25);
+    }
+
+    @media (max-width: 560px) {
+      .pokerControls {
+        width: calc(100vw - 18px);
+        bottom: max(9px, env(safe-area-inset-bottom));
+        gap: 8px;
+        padding: 10px 8px;
+        border-radius: 20px;
+      }
+
+      .pokerBtn {
+        min-width: 0;
+        flex: 1 1 calc(33.333% - 8px);
+        padding: 12px 8px;
+      }
+    }
+
     .hide {
       display: none !important;
     }
@@ -613,7 +696,7 @@
 
 
   <div class="pokerControls" id="pokerControls">
-    <div class="pokerStatus" id="pokerStatus">5-Card Stud • Free house chips only • Win Rollies Tickets</div>
+    <div class="pokerStatus" id="pokerStatus">Your poker buttons will appear here.</div>
     <button class="pokerBtn secondary" id="pokerCheckBtn">CHECK</button>
     <button class="pokerBtn" id="pokerBetBtn">BET 10</button>
     <button class="pokerBtn danger" id="pokerFoldBtn">FOLD</button>
@@ -1250,7 +1333,7 @@
         casino.mode = "cards";
         casino.message = "ROLLIE 5-CARD STUD";
         casino.sub = "Free house chips only • Beat the CPU for Tickets";
-        hint.textContent = "5-Card Stud: ante 10 house chips. You play against the CPU and winning hands earn Rollies Tickets.";
+        hint.classList.add("hide");
         pokerControls.classList.add("show");
         startPokerHand();
         updateCasinoHud();
