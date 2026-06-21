@@ -268,7 +268,6 @@
       <button class="btn" id="playBtn">PLAY</button>
     </div>
   </div>
-</div>
 
   <div class="overlay hide" id="bowlingDoneScreen">
     <div class="card">
@@ -297,14 +296,23 @@
   <div class="overlay hide" id="casinoMenuScreen">
     <div class="card">
       <h2 class="bigTitle casinoTitle">Speak Easy Rollie Casino</h2>
-      <div class="tagline">Arcade tokens only. No real money.</div>
+      <div class="tagline">Free house chips. Win Rollies Tickets.</div>
       <div class="small">
-        This is the first basic casino room for release. Bigger games come in next week’s upgrade.
+        No Dood Coin and no real-money gambling. Beat the CPU at 5-Card Stud to earn tickets for future in-app rewards. Slots are next after poker is polished.
       </div>
-      <button class="btn pink" id="slotsBtn">🎰 Hit the Slots</button>
-      <button class="btn blue" id="cardsBtn">🃏 Play Cards</button>
+      <button class="btn pink" id="slotsBtn">🎰 Slots Preview</button>
+      <button class="btn blue" id="cardsBtn">🃏 Play 5-Card Stud</button>
       <button class="btn" id="casinoBowlBtn">🎳 Back to Bowling</button>
     </div>
+  </div>
+
+
+  <div class="pokerControls" id="pokerControls">
+    <div class="pokerStatus" id="pokerStatus">5-Card Stud • Free house chips only • Win Rollies Tickets</div>
+    <button class="pokerBtn secondary" id="pokerCheckBtn">CHECK</button>
+    <button class="pokerBtn" id="pokerBetBtn">BET 10</button>
+    <button class="pokerBtn danger" id="pokerFoldBtn">FOLD</button>
+    <button class="pokerBtn secondary hide" id="pokerNextBtn">NEXT HAND</button>
   </div>
 
   <script>
@@ -340,6 +348,12 @@
       const hudRightTitle = document.getElementById("hudRightTitle");
       const hudRightValue = document.getElementById("hudRightValue");
       const finalScoreText = document.getElementById("finalScoreText");
+      const pokerControls = document.getElementById("pokerControls");
+      const pokerStatus = document.getElementById("pokerStatus");
+      const pokerCheckBtn = document.getElementById("pokerCheckBtn");
+      const pokerBetBtn = document.getElementById("pokerBetBtn");
+      const pokerFoldBtn = document.getElementById("pokerFoldBtn");
+      const pokerNextBtn = document.getElementById("pokerNextBtn");
 
       function loadImage(paths) {
         const img = new Image();
@@ -628,16 +642,49 @@
       };
 
       const casino = {
-        tokens: 100,
+        tokens: 0,
+        tickets: 0,
         message: "SPEAK EASY",
-        sub: "Arcade tokens only",
+        sub: "Free house chips only",
         reels: ["🎳", "🎱", "⭐"],
         cards: [],
         mode: "menu",
-        spinTimer: 0
+        spinTimer: 0,
+        poker: null
       };
 
+      function todayKey() {
+        const now = new Date();
+        return now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0") + "-" + String(now.getDate()).padStart(2, "0");
+      }
+
+      function loadCasinoWallet() {
+        try {
+          const savedDay = localStorage.getItem("rollies_house_chip_day");
+          if (savedDay !== todayKey()) {
+            localStorage.setItem("rollies_house_chip_day", todayKey());
+            localStorage.setItem("rollies_house_chips", "500");
+          }
+          casino.tokens = Math.max(0, Number(localStorage.getItem("rollies_house_chips") || 500));
+          casino.tickets = Math.max(0, Number(localStorage.getItem("rollies_tickets") || 0));
+        } catch {
+          casino.tokens = 500;
+          casino.tickets = 0;
+        }
+      }
+
+      function saveCasinoWallet() {
+        try {
+          localStorage.setItem("rollies_house_chip_day", todayKey());
+          localStorage.setItem("rollies_house_chips", String(casino.tokens));
+          localStorage.setItem("rollies_tickets", String(casino.tickets));
+        } catch {}
+      }
+
+      loadCasinoWallet();
+
       function hideAllScreens() {
+        pokerControls.classList.remove("show");
         startScreen.classList.add("hide");
         bowlingDoneScreen.classList.add("hide");
         casinoUnlockScreen.classList.add("hide");
@@ -690,8 +737,8 @@
         // the lane sit inside the background gutters instead of feeling too wide/uphill.
         const topY = H * 0.335;
         const bottomY = H * 0.972;
-        const topW = Math.min(W * 0.225, 500);
-        const bottomW = Math.min(W * 0.335, 540);
+        const topW = Math.min(W * 0.31, 560);
+        const bottomW = Math.min(W * 0.46, 700);
 
         return {
           topY,
@@ -737,7 +784,7 @@
         pins = [];
         const pinR = Math.max(17, Math.min(26, W * 0.048));
         const L = lane();
-        const baseY = L.topY + H * 0.075;
+        const baseY = L.topY + H * 0.095;
         const gapY = Math.max(24, H * 0.043);
         const gapX = Math.max(27, W * 0.055);
 
@@ -791,12 +838,12 @@
       }
 
       function updateCasinoHud() {
-        hudLeftTitle.textContent = "Tokens";
+        hudLeftTitle.textContent = "House Chips";
         hudLeftValue.textContent = casino.tokens;
-        hudMidTitle.textContent = "Room";
-        hudMidValue.textContent = casino.mode === "slots" ? "Slots" : casino.mode === "cards" ? "Cards" : "Casino";
-        hudRightTitle.textContent = "Arcade";
-        hudRightValue.textContent = "Only";
+        hudMidTitle.textContent = "Tickets";
+        hudMidValue.textContent = casino.tickets;
+        hudRightTitle.textContent = "Table";
+        hudRightValue.textContent = casino.mode === "cards" ? "Poker" : casino.mode === "slots" ? "Slots" : "Casino";
       }
       function startBowling() {
         unlockAudio();
@@ -869,8 +916,9 @@
         mode = "casino";
         casino.mode = "menu";
         casino.message = "SPEAK EASY";
-        casino.sub = "Choose your table";
-        hint.textContent = "Speak Easy Rollie Casino: choose slots or cards. Arcade tokens only.";
+        casino.sub = "Free house chips • Win Rollies Tickets";
+        hint.textContent = "Poker is open. Slots are coming after the poker table is polished.";
+        pokerControls.classList.remove("show");
         updateCasinoHud();
         casinoMenuScreen.classList.remove("hide");
       }
@@ -882,10 +930,10 @@
         mode = "casino";
         casino.mode = "slots";
         casino.message = "ROLLIE SLOTS";
-        casino.sub = "Tap anywhere to spin";
+        casino.sub = "Slots are being built after poker";
         casino.reels = ["🎳", "🎱", "⭐"];
         casino.spinTimer = 0;
-        hint.textContent = "Slots: tap anywhere to spin. Match 2 or 3 symbols for arcade tokens.";
+        hint.textContent = "Slots are next. This button is kept as a preview while poker is being perfected.";
         updateCasinoHud();
       }
 
@@ -895,10 +943,11 @@
         backBtn.classList.remove("hide");
         mode = "casino";
         casino.mode = "cards";
-        casino.message = "ROLLIE CARD ROOM";
-        casino.sub = "Tap anywhere to deal";
-        casino.cards = [];
-        hint.textContent = "Cards: tap anywhere to deal 5 cards. Pairs and better win arcade tokens.";
+        casino.message = "ROLLIE 5-CARD STUD";
+        casino.sub = "Free house chips only • Beat the CPU for Tickets";
+        hint.textContent = "5-Card Stud: ante 10 house chips. You play against the CPU and winning hands earn Rollies Tickets.";
+        pokerControls.classList.add("show");
+        startPokerHand();
         updateCasinoHud();
       }
 
@@ -934,7 +983,6 @@
 
         if (mode === "casino") {
           if (casino.mode === "slots") spinSlots();
-          if (casino.mode === "cards") dealCards();
           return;
         }
 
@@ -1484,10 +1532,251 @@
         updatePoolHud();
       }
 
+      function makeDeck() {
+        const suits = ["♠", "♥", "♦", "♣"];
+        const ranks = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"];
+        const deck = [];
+        for (const suit of suits) for (let i = 0; i < ranks.length; i++) deck.push({ rank: ranks[i], suit, value: i + 2 });
+        for (let i = deck.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [deck[i], deck[j]] = [deck[j], deck[i]];
+        }
+        return deck;
+      }
+
+      function handScore(cards) {
+        const values = cards.map(c => c.value).sort((a,b) => b-a);
+        const counts = {};
+        values.forEach(v => counts[v] = (counts[v] || 0) + 1);
+        const groups = Object.entries(counts).map(([value,count]) => ({value:Number(value),count})).sort((a,b) => b.count-a.count || b.value-a.value);
+        const flush = cards.length === 5 && cards.every(c => c.suit === cards[0].suit);
+        const unique = [...new Set(values)].sort((a,b)=>b-a);
+        let straightHigh = 0;
+        if (unique.length === 5) {
+          if (unique[0] - unique[4] === 4) straightHigh = unique[0];
+          if (unique.join(",") === "14,5,4,3,2") straightHigh = 5;
+        }
+        if (flush && straightHigh) return [8, straightHigh];
+        if (groups[0].count === 4) return [7, groups[0].value, groups[1].value];
+        if (groups[0].count === 3 && groups[1].count === 2) return [6, groups[0].value, groups[1].value];
+        if (flush) return [5, ...values];
+        if (straightHigh) return [4, straightHigh];
+        if (groups[0].count === 3) return [3, groups[0].value, ...groups.slice(1).map(g=>g.value).sort((a,b)=>b-a)];
+        if (groups[0].count === 2 && groups[1].count === 2) return [2, Math.max(groups[0].value, groups[1].value), Math.min(groups[0].value, groups[1].value), groups[2].value];
+        if (groups[0].count === 2) return [1, groups[0].value, ...groups.slice(1).map(g=>g.value).sort((a,b)=>b-a)];
+        return [0, ...values];
+      }
+
+      function compareHands(a, b) {
+        const as = handScore(a), bs = handScore(b);
+        const n = Math.max(as.length, bs.length);
+        for (let i=0; i<n; i++) {
+          const av = as[i] || 0, bv = bs[i] || 0;
+          if (av !== bv) return av > bv ? 1 : -1;
+        }
+        return 0;
+      }
+
+      function handName(cards) {
+        const names = ["High Card", "One Pair", "Two Pair", "Three of a Kind", "Straight", "Flush", "Full House", "Four of a Kind", "Straight Flush"];
+        return names[handScore(cards)[0]];
+      }
+
+      function visibleStrength(cards) {
+        const ranks = {};
+        cards.forEach(c => ranks[c.value] = (ranks[c.value] || 0) + 1);
+        const pair = Object.values(ranks).some(n => n >= 2);
+        const high = Math.max(...cards.map(c=>c.value));
+        return (pair ? 0.48 : 0.12) + Math.max(0, high - 10) * 0.06 + Math.random() * 0.32;
+      }
+
+      function setPokerStatus(text) {
+        pokerStatus.textContent = text;
+      }
+
+      function updatePokerButtons() {
+        const p = casino.poker;
+        if (!p) return;
+        const done = p.state === "finished";
+        pokerCheckBtn.classList.toggle("hide", done);
+        pokerBetBtn.classList.toggle("hide", done);
+        pokerFoldBtn.classList.toggle("hide", done);
+        pokerNextBtn.classList.toggle("hide", !done);
+        if (done) return;
+        if (p.state === "call") {
+          pokerCheckBtn.textContent = "CALL 10";
+          pokerBetBtn.classList.add("hide");
+          pokerFoldBtn.textContent = "FOLD";
+        } else {
+          pokerCheckBtn.textContent = "CHECK";
+          pokerBetBtn.textContent = "BET 10";
+          pokerBetBtn.classList.remove("hide");
+          pokerFoldBtn.textContent = "FOLD";
+        }
+      }
+
+      function startPokerHand() {
+        if (casino.tokens < 10) {
+          casino.poker = { state:"finished", player:[], cpu:[], pot:0, round:0, result:"You need 10 house chips. Your free chip refill returns tomorrow." };
+          casino.message = "OUT OF HOUSE CHIPS";
+          casino.sub = "Free refill each day";
+          setPokerStatus(casino.poker.result);
+          updatePokerButtons();
+          return;
+        }
+        const deck = makeDeck();
+        casino.tokens -= 10;
+        const p = casino.poker = {
+          deck,
+          player:[deck.pop(), deck.pop()],
+          cpu:[deck.pop(), deck.pop()],
+          pot:20,
+          round:1,
+          state:"player",
+          result:"Ante is 10 house chips. Your turn: check, bet 10, or fold.",
+          cpuFolded:false,
+          revealCpu:false
+        };
+        casino.message = "ROUND 1 • 2 CARDS";
+        casino.sub = "Pot: 20 house chips";
+        setPokerStatus(p.result);
+        saveCasinoWallet();
+        updatePokerButtons();
+      }
+
+      function finishPokerFold(winner) {
+        const p = casino.poker;
+        p.state = "finished";
+        p.revealCpu = true;
+        if (winner === "player") {
+          casino.tokens += p.pot;
+          const tickets = Math.max(1, Math.floor(p.pot / 20));
+          casino.tickets += tickets;
+          p.result = "CPU FOLDS — You win " + p.pot + " house chips and " + tickets + " Rollies Ticket" + (tickets === 1 ? "!" : "s!");
+          casino.message = "CPU FOLDS!";
+          casino.sub = "+" + tickets + " Ticket" + (tickets === 1 ? "" : "s");
+          spawnConfetti(W/2, H*.48, 70);
+          playSound("spare", .3);
+        } else {
+          p.result = "You folded. The CPU takes the pot.";
+          casino.message = "FOLDED";
+          casino.sub = "Next hand when ready";
+          playSound("singlePin", .08);
+        }
+        saveCasinoWallet(); updateCasinoHud(); setPokerStatus(p.result); updatePokerButtons();
+      }
+
+      function dealNextStudCard() {
+        const p = casino.poker;
+        if (p.player.length < 5) {
+          p.player.push(p.deck.pop());
+          p.cpu.push(p.deck.pop());
+          p.round++;
+        }
+        if (p.player.length === 5) {
+          p.state = "player";
+          p.result = "Final betting round. Check, bet 10, or fold.";
+          casino.message = "FINAL ROUND • 5 CARDS";
+        } else {
+          p.state = "player";
+          p.result = "Round " + p.round + ": another card is dealt. Check, bet 10, or fold.";
+          casino.message = "ROUND " + p.round + " • " + p.player.length + " CARDS";
+        }
+        casino.sub = "Pot: " + p.pot + " house chips";
+        setPokerStatus(p.result); updatePokerButtons();
+      }
+
+      function showdown() {
+        const p = casino.poker;
+        p.revealCpu = true;
+        p.state = "finished";
+        const result = compareHands(p.player, p.cpu);
+        const playerName = handName(p.player), cpuName = handName(p.cpu);
+        if (result > 0) {
+          casino.tokens += p.pot;
+          const bonus = handScore(p.player)[0] >= 3 ? 1 : 0;
+          const tickets = Math.max(1, Math.floor(p.pot / 20)) + bonus;
+          casino.tickets += tickets;
+          p.result = "YOU WIN with " + playerName + " over CPU " + cpuName + ". +" + p.pot + " chips and +" + tickets + " Ticket" + (tickets === 1 ? "!" : "s!");
+          casino.message = "YOU WIN — " + playerName.toUpperCase();
+          casino.sub = "+" + tickets + " Rollies Ticket" + (tickets === 1 ? "" : "s");
+          spawnConfetti(W/2,H*.48,100); playSound("strike", .4);
+        } else if (result < 0) {
+          p.result = "CPU WINS with " + cpuName + " over your " + playerName + ".";
+          casino.message = "CPU WINS — " + cpuName.toUpperCase();
+          casino.sub = "Try the next hand";
+          playSound("singlePin", .09);
+        } else {
+          casino.tokens += Math.floor(p.pot / 2);
+          p.result = "TIE — both players have " + playerName + ". Your half of the pot is returned.";
+          casino.message = "TIE GAME";
+          casino.sub = "Half the pot returned";
+          playSound("spare", .18);
+        }
+        saveCasinoWallet(); updateCasinoHud(); setPokerStatus(p.result); updatePokerButtons();
+      }
+
+      function resolveAfterCheck() {
+        const p = casino.poker;
+        const strength = visibleStrength(p.cpu.slice(1));
+        if (strength > .54 && casino.tokens >= 10) {
+          casino.tokens -= 10;
+          p.pot += 10;
+          p.state = "call";
+          p.result = "CPU bets 10 house chips. Call 10 or fold.";
+          casino.message = "CPU BETS 10";
+          casino.sub = "Pot: " + p.pot + " house chips";
+          saveCasinoWallet(); updateCasinoHud(); setPokerStatus(p.result); updatePokerButtons();
+        } else if (p.player.length === 5) {
+          showdown();
+        } else {
+          dealNextStudCard();
+        }
+      }
+
+      function pokerCheckOrCall() {
+        const p = casino.poker;
+        if (!p || p.state === "finished") return;
+        if (p.state === "call") {
+          if (casino.tokens < 10) return finishPokerFold("cpu");
+          casino.tokens -= 10; p.pot += 10;
+          if (p.player.length === 5) showdown(); else dealNextStudCard();
+          saveCasinoWallet(); updateCasinoHud();
+          return;
+        }
+        resolveAfterCheck();
+      }
+
+      function pokerBet() {
+        const p = casino.poker;
+        if (!p || p.state !== "player") return;
+        if (casino.tokens < 10) { setPokerStatus("You need 10 more house chips to bet. You can check or fold."); return; }
+        casino.tokens -= 10; p.pot += 10;
+        const callChance = visibleStrength(p.cpu.slice(1));
+        if (callChance < .34) return finishPokerFold("player");
+        if (casino.tokens >= 10) { casino.tokens -= 10; p.pot += 10; }
+        p.result = "CPU CALLS your bet.";
+        casino.message = "CPU CALLS";
+        casino.sub = "Pot: " + p.pot + " house chips";
+        saveCasinoWallet(); updateCasinoHud();
+        if (p.player.length === 5) showdown(); else dealNextStudCard();
+      }
+
+      function pokerFold() {
+        const p = casino.poker;
+        if (!p || p.state === "finished") return;
+        finishPokerFold("cpu");
+      }
+
+      pokerCheckBtn.addEventListener("click", pokerCheckOrCall);
+      pokerBetBtn.addEventListener("click", pokerBet);
+      pokerFoldBtn.addEventListener("click", pokerFold);
+      pokerNextBtn.addEventListener("click", startPokerHand);
+
       function spinSlots() {
         if (casino.spinTimer > 0) return;
         if (casino.tokens < 5) {
-          casino.message = "OUT OF TOKENS";
+          casino.message = "OUT OF HOUSE CHIPS";
           casino.sub = "Bowl again to reset later";
           return;
         }
@@ -1517,7 +1806,7 @@
               const win = a === "🔑" ? 150 : 75;
               casino.tokens += win;
               casino.message = "JACKPOT!";
-              casino.sub = "+" + win + " tokens";
+              casino.sub = "+" + win + " house chips";
               spawnConfetti(W / 2, H * 0.45, 120);
               playSound("strike", 0.42);
             } else if (a === b || b === c || a === c) {
@@ -1540,7 +1829,7 @@
 
       function dealCards() {
         if (casino.tokens < 5) {
-          casino.message = "OUT OF TOKENS";
+          casino.message = "OUT OF HOUSE CHIPS";
           casino.sub = "Bowl again to reset later";
           return;
         }
@@ -1584,7 +1873,7 @@
 
         casino.tokens += win;
         casino.message = name;
-        casino.sub = win ? "+" + win + " tokens" : "Tap to deal again";
+        casino.sub = win ? "+" + win + " house chips" : "Tap to deal again";
 
         if (win >= 35) {
           spawnConfetti(W / 2, H * 0.45, 80);
@@ -2576,73 +2865,53 @@
         ctx.restore();
       }
 
-      function drawCards() {
-        ctx.save();
-
-        const boxW = Math.min(W * 0.92, 700);
-        const boxH = Math.min(H * 0.5, 380);
-        const x = W / 2 - boxW / 2;
-        const y = H * 0.27;
-
-        ctx.shadowColor = "rgba(255,240,106,0.32)";
-        ctx.shadowBlur = 28;
-        ctx.fillStyle = "rgba(27, 7, 35, 0.86)";
-        roundRect(ctx, x, y, boxW, boxH, 32);
-        ctx.fill();
-
-        ctx.strokeStyle = "rgba(255,240,106,0.6)";
-        ctx.lineWidth = 4;
-        roundRect(ctx, x, y, boxW, boxH, 32);
-        ctx.stroke();
-
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-
-        ctx.font = "1000 " + Math.max(18, Math.min(30, W * 0.055)) + "px Arial";
-        ctx.fillStyle = "#fff06a";
-        ctx.fillText("Rollie Card Room", W / 2, y + boxH * 0.1);
-
-        const cardW = Math.min(80, boxW * 0.15);
-        const cardH = cardW * 1.38;
-        const gap = Math.min(13, boxW * 0.02);
-        const totalW = cardW * 5 + gap * 4;
-        const startX = W / 2 - totalW / 2;
-        const cardY = y + boxH * 0.22;
-
-        for (let i = 0; i < 5; i++) {
-          const cx = startX + i * (cardW + gap);
-          ctx.fillStyle = "#fff7df";
-          roundRect(ctx, cx, cardY, cardW, cardH, 14);
-          ctx.fill();
-
-          ctx.strokeStyle = "#3b123f";
-          ctx.lineWidth = 3;
-          roundRect(ctx, cx, cardY, cardW, cardH, 14);
-          ctx.stroke();
-
-          ctx.fillStyle = "#1c1028";
-          ctx.font = "1000 " + Math.max(18, Math.min(30, cardW * 0.36)) + "px Arial";
-
-          const c = casino.cards[i];
-          if (c) {
-            const red = c.suit === "♥" || c.suit === "♦";
-            ctx.fillStyle = red ? "#c0174c" : "#1c1028";
-            ctx.fillText(c.rank, cx + cardW / 2, cardY + cardH * 0.38);
-            ctx.font = "1000 " + Math.max(22, Math.min(36, cardW * 0.5)) + "px Arial";
-            ctx.fillText(c.suit, cx + cardW / 2, cardY + cardH * 0.66);
-          } else {
-            ctx.fillText("?", cx + cardW / 2, cardY + cardH / 2);
-          }
+      function drawPokerCard(x, y, w, h, card, hidden) {
+        ctx.fillStyle = hidden ? "#42145d" : "#fff7df";
+        roundRect(ctx, x, y, w, h, 14); ctx.fill();
+        ctx.strokeStyle = hidden ? "#fff06a" : "#3b123f";
+        ctx.lineWidth = 3; roundRect(ctx, x, y, w, h, 14); ctx.stroke();
+        if (hidden) {
+          ctx.fillStyle = "rgba(255,240,106,.85)";
+          ctx.font = "1000 " + Math.max(20, w*.34) + "px Arial";
+          ctx.textAlign = "center"; ctx.textBaseline="middle";
+          ctx.fillText("R", x+w/2, y+h/2);
+          return;
         }
+        const red = card.suit === "♥" || card.suit === "♦";
+        ctx.fillStyle = red ? "#c0174c" : "#1c1028";
+        ctx.textAlign = "center"; ctx.textBaseline="middle";
+        ctx.font = "1000 " + Math.max(15, w*.28) + "px Arial";
+        ctx.fillText(card.rank, x+w/2, y+h*.36);
+        ctx.font = "1000 " + Math.max(20, w*.4) + "px Arial";
+        ctx.fillText(card.suit, x+w/2, y+h*.66);
+      }
 
-        ctx.font = "1000 " + Math.max(20, Math.min(34, W * 0.064)) + "px Arial";
-        ctx.fillStyle = "#fff06a";
-        ctx.fillText(casino.message, W / 2, y + boxH * 0.76);
-
-        ctx.font = "900 " + Math.max(13, Math.min(20, W * 0.038)) + "px Arial";
-        ctx.fillStyle = "#ffffff";
-        ctx.fillText(casino.sub, W / 2, y + boxH * 0.88);
-
+      function drawCards() {
+        const p = casino.poker;
+        if (!p) return;
+        ctx.save();
+        const boxW=Math.min(W*.94,760), boxH=Math.min(H*.65,500), x=W/2-boxW/2, y=H*.23;
+        ctx.shadowColor="rgba(255,240,106,.32)"; ctx.shadowBlur=28;
+        ctx.fillStyle="rgba(12,55,40,.92)"; roundRect(ctx,x,y,boxW,boxH,32);ctx.fill();
+        ctx.strokeStyle="rgba(255,240,106,.72)";ctx.lineWidth=4;roundRect(ctx,x,y,boxW,boxH,32);ctx.stroke();
+        ctx.textAlign="center";ctx.textBaseline="middle";
+        ctx.font="1000 "+Math.max(18,Math.min(30,W*.055))+"px Arial";ctx.fillStyle="#fff06a";
+        ctx.fillText("Rollie 5-Card Stud • vs CPU",W/2,y+boxH*.08);
+        ctx.font="900 "+Math.max(12,Math.min(18,W*.032))+"px Arial";ctx.fillStyle="#ffffff";
+        ctx.fillText("CPU",W/2,y+boxH*.17);
+        const cardW=Math.min(74,boxW*.13),cardH=cardW*1.38,gap=Math.min(12,boxW*.018),totalW=cardW*5+gap*4,startX=W/2-totalW/2;
+        for(let i=0;i<5;i++) {
+          const c=p.cpu[i];
+          drawPokerCard(startX+i*(cardW+gap),y+boxH*.22,cardW,cardH,c||{rank:"",suit:""},!c || (!p.revealCpu && i===0));
+        }
+        ctx.font="900 "+Math.max(13,Math.min(19,W*.035))+"px Arial";ctx.fillStyle="#fff06a";
+        ctx.fillText("POT: "+p.pot+" HOUSE CHIPS",W/2,y+boxH*.53);
+        ctx.font="900 "+Math.max(12,Math.min(18,W*.032))+"px Arial";ctx.fillStyle="#ffffff";
+        ctx.fillText("YOU",W/2,y+boxH*.61);
+        for(let i=0;i<5;i++) {
+          const c=p.player[i];
+          drawPokerCard(startX+i*(cardW+gap),y+boxH*.66,cardW,cardH,c||{rank:"",suit:""},!c);
+        }
         ctx.restore();
       }
 
